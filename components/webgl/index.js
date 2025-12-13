@@ -272,8 +272,10 @@ export function Arm() {
       lightsColor,
       light1,
       light2,
+      light3,
       light1Intensity,
       light2Intensity,
+      light3Intensity,
       ambientColor,
     },
     setLights,
@@ -288,25 +290,24 @@ export function Arm() {
         step: 1,
         value: [300, -100, 150],
       },
-      // light1Intensity: {
-      //   min: 0,
-      //   value: 0.4,
-      //   max: 1,
-      // },
-      // light2Intensity: {
-      //   min: 0,
-      //   value: 0.69,
-      //   max: 1,
-      // },
+      light3: {
+        step: 1,
+        value: [0, 0, 500],
+      },
       light1Intensity: {
         min: 0,
         value: 1,
-        max: 1,
+        max: 5,
       },
       light2Intensity: {
         min: 0,
         value: 1,
-        max: 1,
+        max: 5,
+      },
+      light3Intensity: {
+        min: 0,
+        value: 2,
+        max: 5,
       },
       lightsColor: '#1464C8',
       ambientColor: '#0E0E0E',
@@ -380,8 +381,9 @@ export function Arm() {
   useEffect(() => {
     if (step === 0) {
       setLights({
-        light1Intensity: 0.35,
-        light2Intensity: 0.15,
+        light1Intensity: 3.5,
+        light2Intensity: 3.15,
+        light3Intensity: 4,
         lightsColor: '#1464C8',
         ambientColor: '#1464C8',
       })
@@ -394,6 +396,7 @@ export function Arm() {
       setLights({
         light1Intensity: 1,
         light2Intensity: 1,
+        light3Intensity: 1,
         lightsColor: '#efefef',
         ambientColor: '#b0B0B0',
       })
@@ -439,7 +442,7 @@ export function Arm() {
     // return
 
     if (parent.current) {
-      parent.current.visible = from?.type === to?.type
+      // parent.current.visible = from?.type === to?.type
     }
 
     if (!to) return
@@ -491,6 +494,9 @@ export function Arm() {
           <meshBasicMaterial color={'red'} />
         </mesh> */}
         <directionalLight args={[new Color(lightsColor), light2Intensity]} />
+      </group>
+      <group position={light3}>
+        <directionalLight args={[new Color(lightsColor), light3Intensity]} />
       </group>
       <Float floatIntensity={custom ? 0 : 1} rotationIntensity={custom ? 0 : 1}>
         <group

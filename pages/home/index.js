@@ -18,8 +18,8 @@ import { useIntersection, useWindowSize } from 'react-use'
 import s from './home.module.scss'
 import { Modal } from 'components/modal'
 
-const SFDR = dynamic(() => import('icons/sfdr.svg'), { ssr: false })
-const GitHub = dynamic(() => import('icons/github.svg'), { ssr: false })
+const Phone = dynamic(() => import('icons/phone.svg'), { ssr: false })
+const Calendar = dynamic(() => import('icons/calendar.svg'), { ssr: false })
 
 const Parallax = dynamic(
   () => import('components/parallax').then((mod) => mod.Parallax),
@@ -257,17 +257,17 @@ export default function Home() {
           <Button
             className={cn(s.cta, s.documentation, introOut && s.in)}
             arrow
-            icon={<GitHub />}
-            href="https://github.com/darkroomengineering/lenis/blob/main/README.md"
+            icon={<Calendar />}
           >
-            documentation
+            Upcoming/ongoing events
           </Button>
           <Button
             className={cn(s.cta, s.sponsor, introOut && s.in)}
             arrow
-            icon={<SFDR />}
+            icon={<Phone />}
+            href="mailto:contact@cis.org"
           >
-            become member
+            contact us
           </Button>
         </div>
       </section>
