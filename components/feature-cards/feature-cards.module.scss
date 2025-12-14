@@ -1,7 +1,7 @@
 @import 'styles/_functions';
 
 .features {
-  height: 1600vh;
+  height: 2500vh;
 
   @include desktop {
     min-height: desktop-vw(1310px);
@@ -19,18 +19,18 @@
     // transform: translateY(calc(var(--progress) * -1 * var(--d)));
 
     @include mobile {
-      @for $i from 0 through 8 {
+      @for $i from 0 through 13 {
         &:nth-child(#{$i + 1}) {
-          top: calc((((100 * var(--vh, 1vh)) - #{mobile-vw(440px)} - (var(--layout-margin))) / 8) * $i );
+          top: calc((((100 * var(--vh, 1vh)) - #{mobile-vw(440px)} - (var(--layout-margin))) / 13) * $i );
         }
       }
     }
 
     @include desktop {
-      @for $i from 0 through 8 {
+      @for $i from 0 through 13 {
         &:nth-child(#{$i + 1}) {
-          top: calc(((var(--d) - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 8) * $i );
-          left: calc(((100vw - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 8) * $i );
+          top: calc(((var(--d) - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 13) * $i );
+          left: calc(((100vw - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 13) * $i );
         }
       }
     }

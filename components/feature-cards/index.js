@@ -16,26 +16,27 @@ const AppearTitle = dynamic(
 import s from './feature-cards.module.scss'
 
 const cards = [
-  { text: 'Run scroll in the main thread' },
+  { text: 'Team Member 1' },
 
   {
-    text: (
-      <>
-        Lightweight <br /> (under 4kb)
-      </>
-    ),
+    text: 'Team Member 2',
   },
-  { text: `Made for ${new Date().getFullYear()}+` },
-  { text: 'Bring your own animation library' },
+  { text: 'Team Member 3' },
+  { text: 'Team Member 4' },
   {
-    text: <>CONTROL THE SCROLL EASING DURATION</>,
+    text: 'Team Member 5',
   },
-  { text: 'Use any element as scroller' },
-  { text: 'Enjoy horizontal + vertical support' },
-  { text: 'Feel free to use “position: sticky” again' },
+  { text: 'Team Member 6' },
+  { text: 'Team Member 7' },
+  { text: 'Team Member 8' },
   {
-    text: 'touch support',
+    text: 'Team Member 9',
   },
+  { text: 'Team Member 10' },
+  { text: 'Team Member 11' },
+  { text: 'Team Member 12' },
+  { text: 'Team Member 13' },
+  { text: 'Team Member 14' },
 ]
 
 export const FeatureCards = () => {
@@ -56,7 +57,7 @@ export const FeatureCards = () => {
         '--progress',
         clamp(0, mapRange(rect.top, end, scroll, 0, 1), 1)
       )
-      const step = Math.floor(progress * 10)
+      const step = Math.floor(progress * 14)
       setCurrent(step)
     },
     [rect]

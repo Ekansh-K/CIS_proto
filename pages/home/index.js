@@ -396,9 +396,7 @@ export default function Home() {
         <div className={s.inner}>
           <div className={cn('layout-block', s.intro)}>
             <p className="p-l">
-              Lenis is an built to standardize scroll experiences and sauce up websites with
-              butter-smooth navigation, all while using the platform and keeping
-              it accessible.
+              Place Holder Text
             </p>
           </div>
         </div>
