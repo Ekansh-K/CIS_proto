@@ -1,4 +1,4 @@
-# Lenis Website
+
 
 ## Setup
 
@@ -8,17 +8,8 @@ The usual process for Next.js based apps/websites:
 
    `$ pnpm i`
 
-2. Get the .env variables from Vercel (check `.env.template`), after [installing Vercel CLI](https://vercel.com/docs/cli):
 
-   `$ vc link`
-
-   `$ vc env pull`
-
-3. Set up GSAP authentication:
-   
-   Copy `.npmrc.config` to `.npmrc` and replace `GSAP_AUTH_TOKEN` with your token
-
-4. Run development environment:
+2. Run development environment:
 
    `$ pnpm dev`
 

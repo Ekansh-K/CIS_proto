@@ -382,7 +382,7 @@ export function Arm() {
     if (step === 0) {
       setLights({
         light1Intensity: 3.5,
-        light2Intensity: 3.15,
+        light2Intensity: 1.5,
         light3Intensity: 4,
         lightsColor: '#1464C8',
         ambientColor: '#1464C8',
