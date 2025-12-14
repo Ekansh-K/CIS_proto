@@ -20,6 +20,7 @@ import { Modal } from 'components/modal'
 
 const Phone = dynamic(() => import('icons/phone.svg'), { ssr: false })
 const Calendar = dynamic(() => import('icons/calendar.svg'), { ssr: false })
+const gitHub = dynamic(() => import('icons/github.svg'), { ssr: false })
 
 const Parallax = dynamic(
   () => import('components/parallax').then((mod) => mod.Parallax),
@@ -259,13 +260,13 @@ export default function Home() {
             arrow
             icon={<Calendar />}
           >
-            Upcoming/ongoing events
+            Events
           </Button>
           <Button
             className={cn(s.cta, s.sponsor, introOut && s.in)}
             arrow
             icon={<Phone />}
-            href="mailto:contact@cis.org"
+            href="mailto:ieeecisaseb@gmail.com"
           >
             contact us
           </Button>
@@ -275,49 +276,47 @@ export default function Home() {
       <section className={s.why} data-lenis-scroll-snap-align="start">
         <div className="layout-grid">
           <h2 className={cn(s.sticky, 'h2')}>
-            <AppearTitle>Why smooth scroll?</AppearTitle>
+            <AppearTitle>About CIS</AppearTitle>
           </h2>
           <aside className={s.features} ref={whyRectRef}>
             <div className={s.feature}>
               <p className="p">
-                We’ve heard all the reasons to not use smooth scroll. It feels
-                hacky. It’s inaccessible. It’s not performant. It’s
-                over-engineered. And historically, those were all true. But we
-                like to imagine things as they could be, then build them. So,
-                why should you use smooth scroll?
+                Computational Intelligence Society (CIS) is an IEEE technical
+                society dedicated to advancing artificial intelligence through
+                computational paradigms. They focus on neural networks,
+                machine learning algorithms, and generative AI driving intelligent
+                systems and autonomous applications in data science.
               </p>
             </div>
             <div className={s.feature}>
               <h3 className={cn(s.title, 'h4')}>
-                Create more immersive interfaces
+                Machine Learning & Deep Learning
               </h3>
               <p className="p">
-                Unlock the creative potential and impact of your web
-                experiences. Smoothing the scroll pulls users into the flow of
-                the experience that feels so substantial that they forget
-                they’re navigating a web page.
+                CIS aims to focus onneural networks, deep learning
+                architectures, and supervised/unsupervised learning
+                algorithms that power modern AI applications across various domains.
               </p>
             </div>
             <div className={s.feature}>
               <h3 className={cn(s.title, 'h4')}>
-                Normalize all your user inputs
+                Generative AI & LLMs
               </h3>
               <p className="p">
-                Give all your users the same (dope) experience whether they’re
-                using trackpads, mouse wheels, or otherwise. With smooth scroll,
-                you control how silky, heavy, or responsive the experience
-                should be — no matter the input. Magic!
+                CIS explores generative models, large language models,
+                diffusion models, and transformer architectures that enable
+                AI systems to create content and understand natural language.
               </p>
             </div>
             <div className={s.feature}>
               <h3 className={cn(s.title, 'h4')}>
-                Make your animations flawless
+                Global Community:
               </h3>
               <p className="p">
-                Synchronization with native scroll is not reliable. Those jumps
-                and delays with scroll-linked animations are caused by
-                multi-threading, where modern browsers run animations/effects
-                asynchronously with the scroll. Smooth scroll fixes this.
+                Over 6,000 members comprising of researchers, practitioners,
+                students, educators, and industry professionals worldwide,
+                united by interests to foster collaboration through conferences,
+                publications, and educational activities.
               </p>
             </div>
           </aside>
@@ -328,30 +327,17 @@ export default function Home() {
           <div className={s.highlight} data-lenis-scroll-snap-align="start">
             <Parallax speed={-0.5}>
               <p className="h2">
-                <AppearTitle>Rethinking smooth scroll</AppearTitle>
+                <AppearTitle>Why u Should Join CIS</AppearTitle>
               </p>
             </Parallax>
           </div>
           <div className={s.comparison}>
             <Parallax speed={0.5}>
               <p className="p">
-                We have to give props to libraries like{' '}
-                <Link
-                  className="contrast semi-bold"
-                  href="https://github.com/locomotivemtl/locomotive-scroll"
-                >
-                  Locomotive Scroll
-                </Link>{' '}
-                and{' '}
-                <Link
-                  className="contrast semi-bold"
-                  href="https://greensock.com/docs/v3/Plugins/ScrollSmoother"
-                >
-                  GSAP ScrollSmoother
-                </Link>
-                . They’re well built and well documented – and we’ve used them a
-                lot. But they still have issues that keep them from being
-                bulletproof.
+                CIS offers structured learning and experiences in high-demand AI fields like
+                machine learning, data science, and generative AI,
+                hands-on projects, and industry exposure unlike inactive clubs lacking
+                engagement and technical depth
               </p>
             </Parallax>
           </div>
@@ -396,13 +382,13 @@ export default function Home() {
         <div className={s.inner}>
           <div className={s.zoom}>
             <h2 className={cn(s.first, 'h1 vh')}>
-              so we built <br />
-              <span className="contrast">web scrolling</span>
+              so we  Present to u<br />
+              <span className="contrast">Our Club</span>
             </h2>
             <h2 className={cn(s.enter, 'h3 vh')}>
-              Enter <br /> Lenis
+              CIS <br />
             </h2>
-            <h2 className={cn(s.second, 'h1 vh')}>As it should be</h2>
+            <h2 className={cn(s.second, 'h1 vh')}>Join,Learn,Grow</h2>
           </div>
         </div>
       </section>
@@ -410,14 +396,7 @@ export default function Home() {
         <div className={s.inner}>
           <div className={cn('layout-block', s.intro)}>
             <p className="p-l">
-              Lenis is an{' '}
-              <Link
-                className="contrast semi-bold"
-                href="https://github.com/darkroomengineering/lenis"
-              >
-                open-source library
-              </Link>{' '}
-              built to standardize scroll experiences and sauce up websites with
+              Lenis is an built to standardize scroll experiences and sauce up websites with
               butter-smooth navigation, all while using the platform and keeping
               it accessible.
             </p>
@@ -438,10 +417,10 @@ export default function Home() {
           <aside className={s.title}>
             <p className="h3">
               <AppearTitle>
-                <span>Lenis</span>
+                <span>CIS Club</span>
 
                 <br />
-                <span className="grey">in use</span>
+                <span className="grey">Projects</span>
               </AppearTitle>
             </p>
           </aside>

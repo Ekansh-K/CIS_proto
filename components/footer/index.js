@@ -43,7 +43,7 @@ export const Footer = () => {
         <p className={cn(s['first-line'], 'h1')}>
           Lenis is <br />
           <span className="contrast">Open source</span>
-          <br /> & open to <br /> features and sponsors
+          <br /> & open to <br /> H
         </p>
       </div>
       <div className={s.bottom}>
@@ -67,7 +67,7 @@ export const Footer = () => {
             Website
           </Link>
           <Link className={cn(s.link, 'p-xs')} href="https://studiofreight.com">
-            Designed by Studio Freight
+            Designed by Studio Frei
           </Link>
         </div>
         <p className={cn('p-xs', s.tm)}>

@@ -73,9 +73,9 @@ export const FeatureCards = () => {
         <aside className={s.title}>
           <p className="h3">
             <AppearTitle>
-              Lenis brings
+              CIS Club
               <br />
-              <span className="grey">the heat</span>
+              <span className="grey">Team Members</span>
             </AppearTitle>
           </p>
         </aside>

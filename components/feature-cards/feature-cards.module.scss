@@ -21,17 +21,7 @@
     @include mobile {
       @for $i from 0 through 8 {
         &:nth-child(#{$i + 1}) {
-          top: calc(
-            (
-                (
-                    (100 * var(--vh, 1vh)) -
-                      #{mobile-vw(440px)} -
-                      (var(--layout-margin))
-                  ) /
-                  8
-              ) *
-              $i
-          );
+          top: calc((((100 * var(--vh, 1vh)) - #{mobile-vw(440px)} - (var(--layout-margin))) / 8) * $i );
         }
       }
     }
@@ -39,17 +29,8 @@
     @include desktop {
       @for $i from 0 through 8 {
         &:nth-child(#{$i + 1}) {
-          top: calc(
-            (
-                (var(--d) - #{desktop-vw(440px)} - (2 * var(--layout-margin))) /
-                  8
-              ) *
-              $i
-          );
-          left: calc(
-            ((100vw - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 8) *
-              $i
-          );
+          top: calc(((var(--d) - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 8) * $i );
+          left: calc(((100vw - #{desktop-vw(440px)} - (2 * var(--layout-margin))) / 8) * $i );
         }
       }
     }
@@ -79,10 +60,9 @@
   height: 100vh;
   padding: var(--layout-margin);
 
-  @include desktop {
-  }
+  @include desktop {}
 
-  > * {
+  >* {
     position: relative;
   }
 }
