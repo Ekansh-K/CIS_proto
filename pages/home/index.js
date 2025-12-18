@@ -4,7 +4,7 @@ import cn from 'clsx'
 import { Button } from 'components/button'
 import { Card } from 'components/card'
 import { Title } from 'components/intro'
-import { Link } from 'components/link'
+
 import { ListItem } from 'components/list-item'
 import { projects } from 'content/projects'
 import { useScroll } from 'hooks/use-scroll'
@@ -20,7 +20,7 @@ import s from './home.module.scss'
 
 const Phone = dynamic(() => import('icons/phone.svg'), { ssr: false })
 const Calendar = dynamic(() => import('icons/calendar.svg'), { ssr: false })
-const gitHub = dynamic(() => import('icons/github.svg'), { ssr: false })
+
 
 const Parallax = dynamic(
   () => import('components/parallax').then((mod) => mod.Parallax),
