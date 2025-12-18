@@ -92,6 +92,21 @@
     }
 
     .links {
+      .icon {
+        width: mobile-vw(32px);
+        height: mobile-vw(32px);
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: scale(1.1);
+        }
+
+        @include desktop {
+          width: desktop-vw(32px);
+          height: desktop-vw(32px);
+        }
+      }
+
       @include desktop {
         .link:not(:first-child) {
           margin: 0;

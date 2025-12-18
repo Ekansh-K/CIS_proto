@@ -2,9 +2,11 @@ import cn from 'clsx'
 import { Button } from 'components/button'
 import { Link } from 'components/link'
 import dynamic from 'next/dynamic'
+
+const Instagram = dynamic(() => import('icons/instagram.svg'), { ssr: false })
+const Gmail = dynamic(() => import('icons/gmail.svg'), { ssr: false })
 import s from './footer.module.scss'
 
-const GitHub = dynamic(() => import('icons/github.svg'), { ssr: false })
 
 export const Footer = () => {
   return (
@@ -13,7 +15,7 @@ export const Footer = () => {
         <p className={cn(s['first-line'], 'h1')}>
           Computational <br />
           Intelligence <br />
-          Society <span style={{ color: '#b50246' }}>ASEB</span>
+          Society
         </p>
 
 
@@ -22,28 +24,22 @@ export const Footer = () => {
         <p className={cn(s['first-line'], 'h1')}>
           Computational <br />
           Intelligence <br />
-          Society <span style={{ color: '#b50246' }}>    ASEB</span>
+          Society
         </p>
       </div>
       <div className={s.bottom}>
         <div className={s.links}>
           <Link
             className={cn(s.link, 'p-xs')}
-            href=""
+            href="https://www.instagram.com/ieee_cis_aseb"
           >
-            LinkedIn
+            <Instagram className={s.icon} />
           </Link>
           <Link
             className={cn(s.link, 'p-xs')}
-            href=""
+            href="mailto:ieeecisaseb@gmail.com"
           >
-            Instagram
-          </Link>
-          <Link
-            className={cn(s.link, 'p-xs')}
-            href="https://darkroom.engineering/"
-          >
-            Website
+            <Gmail className={s.icon} />
           </Link>
 
         </div>
