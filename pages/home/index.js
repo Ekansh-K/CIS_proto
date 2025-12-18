@@ -215,7 +215,7 @@ export default function Home() {
     <Layout
       theme={theme}
       seo={{
-        title: 'Lenis – Get smooth or die trying',
+        title: 'CIS-ASEB',
         description:
           'A smooth scroll library fresh out of the darkroom.engineering.',
       }}
@@ -382,7 +382,7 @@ export default function Home() {
         <div className={s.inner}>
           <div className={s.zoom}>
             <h2 className={cn(s.first, 'h1 vh')}>
-              so we  Present to u<br />
+              We Present to u<br />
               <span className="contrast">Our Club</span>
             </h2>
             <h2 className={cn(s.enter, 'h3 vh')}>

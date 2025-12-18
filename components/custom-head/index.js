@@ -71,17 +71,13 @@ export function CustomHead({ title = '', description, image, keywords }) {
           locale: 'en_US',
           images: [
             {
-              url: image
-                ? image.url
-                : 'https://lenis.darkroom.engineering/og.png',
-              width: image ? image.width : 1200,
-              height: image ? image.height : 630,
+              height: image ? image.height : 136,
               alt: title,
             },
           ],
-          defaultImageWidth: 1200,
-          defaultImageHeight: 630,
-          site_name: '',
+          defaultImageWidth: 371,
+          defaultImageHeight: 136,
+          site_name: 'CIS-ASEB',
         }}
       />
     </>

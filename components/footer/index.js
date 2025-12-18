@@ -20,10 +20,7 @@ export const Footer = () => {
             An independent creative <br /> studio built on principle
           </p>
         </div> */}
-        <p className={cn(s['last-line'], 'h1')}>
-          & open to <span className="hide-on-desktop">&nbsp;</span> features{' '}
-          <br /> and sponsors
-        </p>
+
         <Button
           className={s.cta}
           arrow
@@ -43,7 +40,7 @@ export const Footer = () => {
         <p className={cn(s['first-line'], 'h1')}>
           Lenis is <br />
           <span className="contrast">Open source</span>
-          <br /> & open to <br /> H
+
         </p>
       </div>
       <div className={s.bottom}>
