@@ -65,9 +65,9 @@ export default function Page() {
     <>
       <CustomHead
         {...{
-          title: 'Lenis – Get smooth or die trying',
+          title: 'CIS - ASEB',
           description:
-            'A smooth scroll library fresh out of darkroom.engineering.',
+            'IEEE Computational Intelligence Society',
         }}
       />
 

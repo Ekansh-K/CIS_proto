@@ -245,8 +245,8 @@ const material = new MeshPhysicalMaterial({
 })
 
 export function Arm() {
-  const { scene: arm1 } = useGLTF('/models/arm.glb')
-  const { scene: arm2 } = useGLTF('/models/arm2.glb')
+  const { scene: arm1 } = useGLTF('/models/cis-lgo.glb')
+  const { scene: arm2 } = useGLTF('/models/cis_logo_1.glb')
   const [type, setType] = useState(1)
 
   const [{ color, roughness, metalness, wireframe }, setMaterial] = useControls(
