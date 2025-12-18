@@ -217,7 +217,7 @@ export default function Home() {
       seo={{
         title: 'CIS-ASEB',
         description:
-          'A smooth scroll library fresh out of the darkroom.engineering.',
+          'ieee cis website',
       }}
       className={s.home}
     >
