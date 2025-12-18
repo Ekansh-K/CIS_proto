@@ -34,6 +34,14 @@ const GridDebugger = dynamic(
   { ssr: false }
 )
 
+const TransitionOverlay = dynamic(
+  () =>
+    import('components/transition-overlay').then(
+      ({ TransitionOverlay }) => TransitionOverlay
+    ),
+  { ssr: false }
+)
+
 const Leva = dynamic(() => import('leva').then(({ Leva }) => Leva), {
   ssr: false,
 })
@@ -57,8 +65,11 @@ function MyApp({ Component, pageProps }) {
 
   ScrollTrigger.defaults({ markers: process.env.NODE_ENV === 'development' })
 
+  ScrollTrigger.defaults({ markers: process.env.NODE_ENV === 'development' })
+
   return (
     <>
+      <TransitionOverlay />
       <Leva hidden={!debug} />
       {debug && (
         <>

@@ -13,6 +13,8 @@ import { button, useControls } from 'leva'
 import { clamp, mapRange } from 'lib/maths'
 import { useStore } from 'lib/store'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
 import { useIntersection, useWindowSize } from 'react-use'
 import s from './home.module.scss'
@@ -62,6 +64,7 @@ if (typeof window !== 'undefined') {
 }
 
 export default function Home() {
+  const router = useRouter()
   const [hasScrolled, setHasScrolled] = useState()
   const zoomRef = useRef(null)
   const [zoomWrapperRectRef, zoomWrapperRect] = useRect()
@@ -259,6 +262,21 @@ export default function Home() {
             className={cn(s.cta, s.documentation, introOut && s.in)}
             arrow
             icon={<Calendar />}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const x = rect.left + rect.width / 2
+              const y = rect.top + rect.height / 2
+
+              useStore.getState().setTransition({
+                isActive: true,
+                state: 'expanding',
+                origin: { x, y },
+              })
+
+              setTimeout(() => {
+                router.push('/events')
+              }, 800)
+            }}
           >
             Events
           </Button>

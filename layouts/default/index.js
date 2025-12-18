@@ -26,6 +26,7 @@ export function Layout({
   children,
   theme = 'light',
   className,
+  hideFooter = false,
 }) {
   const [lenis, setLenis] = useStore((state) => [state.lenis, state.setLenis])
   const router = useRouter()
@@ -107,7 +108,7 @@ export function Layout({
         <Cursor />
         <Scrollbar />
         <main className={s.main}>{children}</main>
-        <Footer />
+        {!hideFooter && <Footer />}
       </div>
     </>
   )

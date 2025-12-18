@@ -1,0 +1,23 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    pointer-events: none;
+    overflow: hidden;
+
+    .circle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100px;
+        height: 100px;
+        background-color: white; // Or use a theme color variable
+        border-radius: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        will-change: transform;
+        pointer-events: none;
+    }
+}
