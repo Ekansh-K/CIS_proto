@@ -16,7 +16,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { useIntersection, useWindowSize } from 'react-use'
 import s from './home.module.scss'
-import { Modal } from 'components/modal'
+
 
 const Phone = dynamic(() => import('icons/phone.svg'), { ssr: false })
 const Calendar = dynamic(() => import('icons/calendar.svg'), { ssr: false })

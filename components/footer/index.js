@@ -50,15 +50,15 @@ export const Footer = () => {
         <div className={s.links}>
           <Link
             className={cn(s.link, 'p-xs')}
-            href="https://twitter.com/darkroomdevs"
+            href=""
           >
-            Twitter
+            LinkedIn
           </Link>
           <Link
             className={cn(s.link, 'p-xs')}
-            href="https://github.com/darkroomengineering"
+            href=""
           >
-            GitHub
+            Instagram
           </Link>
           <Link
             className={cn(s.link, 'p-xs')}

@@ -30,10 +30,10 @@ export function CustomHead({ title = '', description, image, keywords }) {
           name="keywords"
           content={keywords && keywords.length ? keywords.join(',') : keywords}
         />
-        <meta name="author" content="darkroom.engineering" />
+        <meta name="author" content="CIS" />
         <meta name="referrer" content="no-referrer" />
         <meta name="format-detection" content="telephone=no" />
-        <meta name="geo.region" content="US" />
+        <meta name="geo.region" content="IN" />
 
         {/* START FAVICON */}
         <link rel="manifest" href="/site.webmanifest" />
@@ -82,10 +82,6 @@ export function CustomHead({ title = '', description, image, keywords }) {
           defaultImageWidth: 1200,
           defaultImageHeight: 630,
           site_name: '',
-        }}
-        twitter={{
-          handle: '@darkroomdevs',
-          cardType: 'summary_large_image',
         }}
       />
     </>

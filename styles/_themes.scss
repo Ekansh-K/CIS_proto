@@ -7,18 +7,15 @@
 // config:
 // you must use colors filled in _colors.scss but any other colors could works
 $themes: (
-  'light': (
-    'primary': map.get($colors, 'white'),
+  'light': ('primary': map.get($colors, 'white'),
     'secondary': map.get($colors, 'black'),
     'contrast': map.get($colors, 'pink'),
   ),
-  'dark': (
-    'primary': map.get($colors, 'black'),
+  'dark': ('primary': map.get($colors, 'black'),
     'secondary': map.get($colors, 'white'),
     'contrast': map.get($colors, 'pink'),
   ),
-  'contrast': (
-    'primary': map.get($colors, 'pink'),
+  'contrast': ('primary': map.get($colors, 'pink'),
     'secondary': map.get($colors, 'black'),
     'contrast': map.get($colors, 'white'),
   ),
