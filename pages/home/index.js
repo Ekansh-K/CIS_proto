@@ -396,7 +396,7 @@ export default function Home() {
         <div className={s.inner}>
           <div className={cn('layout-block', s.intro)}>
             <p className="p-l">
-              Place Holder Text
+              Lets Shape the Future together
             </p>
           </div>
         </div>

@@ -4,14 +4,14 @@
   // background-color: var(--theme-primary);
   color: var(--theme-secondary);
   padding: mobile-vw(20px) 0;
-  height: 100vh;
+  height: auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
 
   @include desktop {
-    height: 100vh;
+    height: auto;
     padding: desktop-vw(40px) 0;
   }
 
@@ -38,6 +38,7 @@
         margin: 0;
         align-self: start;
         grid-column: 1 / span 7;
+        text-align: left;
       }
     }
 
