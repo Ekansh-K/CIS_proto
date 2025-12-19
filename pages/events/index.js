@@ -10,11 +10,13 @@ import { gsap } from 'gsap'
 export default function Events() {
     const { transition, setTransition } = useStore()
     const [theme, setTheme] = useState('dark') // Default Dark
+    const [activeTab, setActiveTab] = useState('upcoming') // Lifted State
     const router = useRouter()
 
-    // Config for the reveal animation
+    // Refs for layers
+    const darkLayerRef = useRef(null)
+    const lightLayerRef = useRef(null)
     const [isAnimating, setIsAnimating] = useState(false)
-    const revealRef = useRef(null) // Top layer
 
     useEffect(() => {
         // Initial page load reveal (Global white overlay)
@@ -43,8 +45,8 @@ export default function Events() {
 
         setIsAnimating(true)
 
-        // The "next" theme is already rendered in the reveal layer (see render).
-        // We just need to animate the clip-path.
+        const nextTheme = theme === 'light' ? 'dark' : 'light'
+        const targetLayer = nextTheme === 'light' ? lightLayerRef.current : darkLayerRef.current
 
         const viewportWidth = window.innerWidth
         const viewportHeight = window.innerHeight
@@ -52,76 +54,101 @@ export default function Events() {
         const distY = Math.max(y, viewportHeight - y)
         const radius = Math.sqrt(distX * distX + distY * distY)
 
-        // Start circle at 0
-        gsap.set(revealRef.current, {
+        // Ensure proper stacking order for animation
+        // The one we rely on for "Next" is currently visually hidden (clipPath=0) and needs to be on TOP for the mask to work?
+        // Actually, if we use Z-Index Swap:
+        // Bottom Layer (Current) is Full.
+        // Top Layer (Next) is 0.
+        // We expand Top Layer.
+        // When Top Layer is Full, it Covers Bottom.
+        // Then we Swap state: "Top" becomes "Current" (Bottom). "Bottom" becomes "Next" (Top).
+        // And we reset the new Top to 0.
+
+        // So:
+        // If Current is Dark: Dark is Z=1. Light is Z=2. Light is clip 0.
+        // Animate Light to Full.
+        // Set Theme = Light.
+        // Now Light is Z=1. Dark is Z=2. Dark needs to be clip 0.
+
+        gsap.set(targetLayer, {
             clipPath: `circle(0px at ${x}px ${y}px)`,
-            zIndex: 10,
+            zIndex: 10, // Ensure it's on top during animation
             visibility: 'visible'
         })
 
-        gsap.to(revealRef.current, {
+        gsap.to(targetLayer, {
             clipPath: `circle(${radius}px at ${x}px ${y}px)`,
-            duration: 1,
-            ease: 'power3.inOut',
+            duration: 1.2,
+            ease: 'expo.inOut',
             onComplete: () => {
-                // Animation Done.
-                // 1. Swap the real theme state to match the top layer.
-                setTheme(prev => prev === 'light' ? 'dark' : 'light')
-
-                // 2. Reset the top layer to be hidden (but since theme swapped, Bottom layer is now New Theme).
-                // So top layer becomes "Next Next Theme" (Old Theme).
-                // Careful: 
-                // Theme = Dark. Top = Light. 
-                // Animate Top (Light) to full.
-                // Set Theme = Light. 
-                // Bottom is now Light. Top is now Dark (next inversion).
-                // If we assume Top is always "Opposite of Theme".
-                // We just need to hide Top instantly? 
-
-                gsap.set(revealRef.current, { visibility: 'hidden', clipPath: 'none' }) // or circle(0)
+                setTheme(nextTheme)
                 setIsAnimating(false)
+
+                // Reset the OLD layer (which is now the "Next" layer conceptually)
+                // We rely on React state to update z-indices based on 'theme'.
+                // Ideally, we wait for re-render?
+                // But GSAP might hold styles.
+                // Safest: Clear props on the "New Current" (targetLayer) so CSS takes over?
+                // And Force 0 Clip on the "New Next".
+
+                const oldLayer = nextTheme === 'light' ? darkLayerRef.current : lightLayerRef.current
+
+                // Clear inline styles from animation on the winner, but KEEP visibility to prevent blink if React delays
+                gsap.set(targetLayer, { clearProps: 'zIndex,clipPath' })
+
+                // Hide the loser
+                gsap.set(oldLayer, { clipPath: 'circle(0px at 50% 50%)', visibility: 'hidden', clearProps: 'zIndex' })
             }
         })
     }
 
-    const nextTheme = theme === 'light' ? 'dark' : 'light'
-
     return (
         <Layout
-            theme={theme} // Passing current theme to layout (sets navigation colors etc if needed)
+            theme={theme}
             seo={{
                 title: 'CIS - Events',
                 description: 'Upcoming and past events',
             }}
             hideFooter
-            className={s.eventsPageWrapper} // New wrapper class
+            className={s.eventsPageWrapper}
         >
             <div className={s.layersContainer}>
-                {/* Bottom Layer: Current Theme */}
-                <div className={s.layer} style={{ zIndex: 1 }}>
+                {/* Dark Layer */}
+                <div
+                    className={s.layer}
+                    ref={darkLayerRef}
+                    style={{
+                        zIndex: theme === 'dark' ? 1 : 2, // If Dark active, it's bottom. If Light active, Dark is Top (waiting).
+                        // Actually, simpler: Active is always bottom. Inactive is Top (masked).
+                        // Wait, if Inactive is Top, it blocks clicks?
+                        // pointer-events: none for Inactive.
+                        pointerEvents: theme === 'dark' ? 'auto' : 'none',
+                        visibility: theme === 'dark' ? 'visible' : 'hidden' // Initially hidden if inactive
+                    }}
+                >
                     <EventsContent
-                        theme={theme}
+                        theme="dark"
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
                         goBack={goBack}
                         toggleTheme={toggleTheme}
                     />
                 </div>
 
-                {/* Top Layer: Next Theme (Masked) */}
+                {/* Light Layer */}
                 <div
                     className={s.layer}
-                    ref={revealRef}
+                    ref={lightLayerRef}
                     style={{
-                        zIndex: 2,
-                        visibility: 'hidden',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%'
+                        zIndex: theme === 'light' ? 1 : 2,
+                        pointerEvents: theme === 'light' ? 'auto' : 'none',
+                        visibility: theme === 'light' ? 'visible' : 'hidden'
                     }}
                 >
                     <EventsContent
-                        theme={nextTheme}
+                        theme="light"
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
                         goBack={goBack}
                         toggleTheme={toggleTheme}
                     />

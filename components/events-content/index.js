@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import s from '../../pages/events/events.module.scss'
 // Actually let's keep scss in pages/events/events.module.scss for now and import it here.
 import cn from 'clsx'
@@ -8,8 +7,7 @@ const Sun = dynamic(() => import('icons/sun.svg'), { ssr: false })
 const Moon = dynamic(() => import('icons/moon.svg'), { ssr: false })
 const Arrow = dynamic(() => import('icons/arrow-buttons.svg'), { ssr: false })
 
-export const EventsContent = ({ theme, transition, toggleTheme, goBack }) => {
-    const [activeTab, setActiveTab] = useState('upcoming')
+export const EventsContent = ({ theme, transition, toggleTheme, goBack, activeTab, setActiveTab }) => {
 
     const tabs = [
         { id: 'upcoming', label: 'Upcoming' },
