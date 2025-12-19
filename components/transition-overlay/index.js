@@ -2,49 +2,52 @@ import { useStore } from 'lib/store'
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import s from './transition-overlay.module.scss'
+import cn from 'clsx'
 
 export const TransitionOverlay = () => {
     const { transition, setTransition } = useStore()
     const circleRef = useRef(null)
 
     useEffect(() => {
+        if (!transition.isActive) {
+            if (circleRef.current) {
+                gsap.set(circleRef.current, { scale: 0, opacity: 0 })
+            }
+            return
+        }
+
         if (transition.state === 'expanding') {
             const { x, y } = transition.origin
 
-            // Calculate radius to cover the screen
             const viewportWidth = window.innerWidth
             const viewportHeight = window.innerHeight
 
-            // Distance to furthest corner
             const distX = Math.max(x, viewportWidth - x)
             const distY = Math.max(y, viewportHeight - y)
             const radius = Math.sqrt(distX * distX + distY * distY)
             const diameter = radius * 2
 
-            // Initial set
             gsap.set(circleRef.current, {
                 x: x,
                 y: y,
                 scale: 0,
-                opacity: 1
+                opacity: 1,
+                backgroundColor: transition.color || 'white'
             })
 
-            // Expand
             gsap.to(circleRef.current, {
-                scale: diameter / 100, // Normalized scale since base size is 100px
+                scale: diameter / 100,
                 duration: 0.8,
-                ease: 'power3.inOut', // Smooth ease
+                ease: 'power3.inOut',
                 onComplete: () => {
                     setTransition({ state: 'expanded' })
                 },
             })
         } else if (transition.state === 'collapsing') {
-            // Collapse logic - maybe fade out or scale down
-            // For "opposite manner", we could scale down to center or 0
 
             gsap.to(circleRef.current, {
                 scale: 0,
-                opacity: 0, // Fade out slightly for smoother feel
+                opacity: 0,
                 duration: 0.8,
                 ease: 'power3.inOut',
                 onComplete: () => {
@@ -52,12 +55,12 @@ export const TransitionOverlay = () => {
                 },
             })
         }
-    }, [transition.state, transition.origin, setTransition])
+    }, [transition.isActive, transition.state, transition.origin, setTransition])
 
     if (!transition.isActive && transition.state === 'idle') return null
 
     return (
-        <div className={s.overlay}>
+        <div className={cn(s.overlay, transition.mode === 'inversion' && s.inversion)}>
             <div className={s.circle} ref={circleRef} />
         </div>
     )

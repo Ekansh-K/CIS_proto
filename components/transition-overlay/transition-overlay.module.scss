@@ -7,6 +7,15 @@
     z-index: 9999;
     pointer-events: none;
     overflow: hidden;
+    mix-blend-mode: normal;
+
+    &.inversion {
+        mix-blend-mode: difference;
+
+        .circle {
+            background-color: white !important; // Inversion always needs white to invert colors
+        }
+    }
 
     .circle {
         position: absolute;
@@ -14,7 +23,7 @@
         left: 0;
         width: 100px;
         height: 100px;
-        background-color: white; // Or use a theme color variable
+        background-color: white;
         border-radius: 50%;
         transform: translate(-50%, -50%) scale(0);
         will-change: transform;
