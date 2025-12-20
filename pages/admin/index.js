@@ -27,7 +27,12 @@ export default function AdminDashboard() {
         date: new Date(),
         image_url: '',
         registration_link: '',
-        registration_status: 'open'
+        image_url: '',
+        registration_link: '',
+        registration_status: 'open',
+        venue: '',
+        event_time: '',
+        registration_open_time: null
     })
     const [imageFile, setImageFile] = useState(null)
     const [isEditing, setIsEditing] = useState(false)
@@ -73,7 +78,12 @@ export default function AdminDashboard() {
                 date: event.date ? new Date(event.date) : new Date(),
                 image_url: event.image_url || '',
                 registration_link: event.registration_link || '',
-                registration_status: event.registration_status || 'open'
+                image_url: event.image_url || '',
+                registration_link: event.registration_link || '',
+                registration_status: event.registration_status || 'open',
+                venue: event.venue || '',
+                event_time: event.event_time || '',
+                registration_open_time: event.registration_open_time ? new Date(event.registration_open_time) : null
             })
             setIsEditing(true)
             setEditId(event.id)
@@ -85,7 +95,12 @@ export default function AdminDashboard() {
                 date: new Date(),
                 image_url: '',
                 registration_link: '',
-                registration_status: 'open'
+                image_url: '',
+                registration_link: '',
+                registration_status: 'open',
+                venue: '',
+                event_time: '',
+                registration_open_time: null
             })
             setIsEditing(false)
             setEditId(null)
@@ -246,10 +261,42 @@ export default function AdminDashboard() {
                                     <DatePicker
                                         selected={formData.date}
                                         onChange={date => setFormData({ ...formData, date })}
-                                        className={s.datePicker} // You might need to add global styles for this or specific class
+                                        className={s.datePicker}
                                         wrapperClassName={s.datePickerWrapper}
                                     />
                                 </div>
+                            </div>
+
+                            <div className={s.row}>
+                                <div className={s.inputGroup}>
+                                    <label>Event Time</label>
+                                    <input
+                                        value={formData.event_time}
+                                        onChange={e => setFormData({ ...formData, event_time: e.target.value })}
+                                        placeholder="e.g. 10:00 AM"
+                                    />
+                                </div>
+                                <div className={s.inputGroup}>
+                                    <label>Venue</label>
+                                    <input
+                                        value={formData.venue}
+                                        onChange={e => setFormData({ ...formData, venue: e.target.value })}
+                                        placeholder="e.g. Main Auditorium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={s.inputGroup}>
+                                <label>Registration Opens At (Optional)</label>
+                                <DatePicker
+                                    selected={formData.registration_open_time}
+                                    onChange={date => setFormData({ ...formData, registration_open_time: date })}
+                                    showTimeSelect
+                                    dateFormat="Pp"
+                                    placeholderText="Click to select date and time"
+                                    className={s.datePicker}
+                                    wrapperClassName={s.datePickerWrapper}
+                                />
                             </div>
 
                             <div className={s.inputGroup}>
