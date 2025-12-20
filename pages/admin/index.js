@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from 'lib/supabase'
 import { useRouter } from 'next/router'
-import { Button } from 'components/button'
+
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 import s from './admin.module.scss'
@@ -17,7 +17,7 @@ export default function AdminDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isRegModalOpen, setIsRegModalOpen] = useState(false)
     const [currentRegistrations, setCurrentRegistrations] = useState([])
-    const [selectedEventId, setSelectedEventId] = useState(null)
+
 
     // Form State
     const [formData, setFormData] = useState({
@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     }
 
     async function fetchEvents() {
-        const { data, error } = await supabaseAdmin
+        const { data } = await supabaseAdmin
             .from('events')
             .select('*')
             .order('created_at', { ascending: false })
@@ -164,9 +164,8 @@ export default function AdminDashboard() {
 
     const viewRegistrations = async (eventId) => {
         setLoading(true)
-        setSelectedEventId(eventId)
 
-        const { data, error } = await supabaseAdmin
+        const { data } = await supabaseAdmin
             .from('registrations')
             .select('*')
             .eq('event_id', eventId)
@@ -341,6 +340,8 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+                )}
         </div>
+        </div >
     )
 }

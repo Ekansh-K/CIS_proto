@@ -13,7 +13,7 @@ import { button, useControls } from 'leva'
 import { clamp, mapRange } from 'lib/maths'
 import { useStore } from 'lib/store'
 import dynamic from 'next/dynamic'
-import Link from 'next/link'
+
 import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
 import { useIntersection, useWindowSize } from 'react-use'
