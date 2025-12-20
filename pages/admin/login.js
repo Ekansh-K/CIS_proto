@@ -16,16 +16,26 @@ export default function AdminLogin() {
         setLoading(true)
         setError(null)
 
-        const { error } = await supabaseAdmin.auth.signInWithPassword({
-            email,
-            password,
-        })
+        try {
+            const res = await fetch('/api/admin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            })
 
-        if (error) {
-            setError(error.message)
-            setLoading(false)
-        } else {
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Login failed')
+            }
+
+            // Save the session to the segregated Admin storage
+            await supabaseAdmin.auth.setSession(data.session)
+
             router.push('/admin')
+        } catch (err) {
+            setError(err.message)
+            setLoading(false)
         }
     }
 

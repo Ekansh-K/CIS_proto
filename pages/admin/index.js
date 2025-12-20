@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from 'lib/supabase'
+import { supabaseAdmin } from 'lib/supabase'
 import { useRouter } from 'next/router'
 import { Button } from 'components/button'
 import DatePicker from 'react-datepicker'
@@ -39,7 +39,7 @@ export default function AdminDashboard() {
     }, [])
 
     async function checkUser() {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session } } = await supabaseAdmin.auth.getSession()
         if (!session) {
             router.push('/admin/login')
         } else {
@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     }
 
     async function fetchEvents() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
             .from('events')
             .select('*')
             .order('created_at', { ascending: false })
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
     }
 
     async function handleLogout() {
-        await supabase.auth.signOut()
+        await supabaseAdmin.auth.signOut()
         router.push('/admin/login')
     }
 
