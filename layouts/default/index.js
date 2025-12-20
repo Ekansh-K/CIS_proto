@@ -27,6 +27,7 @@ export function Layout({
   theme = 'light',
   className,
   hideFooter = false,
+  hideScrollbar = false,
 }) {
   const [lenis, setLenis] = useStore((state) => [state.lenis, state.setLenis])
   const router = useRouter()
@@ -55,8 +56,14 @@ export function Layout({
   useEffect(() => {
     if (lenis && hash) {
       // scroll to on hash change
-      const target = document.querySelector(hash)
-      lenis.scrollTo(target, { offset: 0 })
+      try {
+        const target = document.querySelector(hash)
+        if (target) {
+          lenis.scrollTo(target, { offset: 0 })
+        }
+      } catch (error) {
+        console.warn('Invalid hash selector:', hash)
+      }
     }
   }, [lenis, hash])
 
@@ -106,7 +113,7 @@ export function Layout({
         <PageTransition />
         <Intro />
         <Cursor />
-        <Scrollbar />
+        {!hideScrollbar && <Scrollbar />}
         <main className={s.main}>{children}</main>
         {!hideFooter && <Footer />}
       </div>

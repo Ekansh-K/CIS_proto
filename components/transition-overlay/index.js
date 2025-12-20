@@ -37,7 +37,7 @@ export const TransitionOverlay = () => {
 
             gsap.to(circleRef.current, {
                 scale: diameter / 100,
-                duration: 0.8,
+                duration: typeof transition.duration === 'number' ? transition.duration : 0.8,
                 ease: 'power3.inOut',
                 onComplete: () => {
                     setTransition({ state: 'expanded' })
@@ -48,12 +48,19 @@ export const TransitionOverlay = () => {
             gsap.to(circleRef.current, {
                 scale: 0,
                 opacity: 0,
-                duration: 0.8,
+                duration: typeof transition.duration === 'number' ? transition.duration : 0.8,
                 ease: 'power3.inOut',
                 onComplete: () => {
                     setTransition({ state: 'idle', isActive: false })
                 },
             })
+        }
+
+        // Cleanup function to ensure we don't leave artifacts if unmounted rapidly
+        return () => {
+            if (circleRef.current) {
+                gsap.killTweensOf(circleRef.current)
+            }
         }
     }, [transition.isActive, transition.state, transition.origin, setTransition])
 

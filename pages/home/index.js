@@ -73,6 +73,21 @@ export default function Home() {
 
   const [theme, setTheme] = useState('dark')
   const lenis = useStore(({ lenis }) => lenis)
+  const setTransition = useStore((state) => state.setTransition)
+
+  useEffect(() => {
+    // Trigger the collapsing animation to reveal the page
+    setTransition({ state: 'collapsing' })
+
+    // Safety fallback: Force overlay removal after animation duration (plus buffer)
+    // This ensures that even if the animation fails or state gets desynced, the user sees the page.
+    const timer = setTimeout(() => {
+      setTransition({ state: 'idle', isActive: false })
+    }, 1200)
+
+    return () => clearTimeout(timer)
+  }, [setTransition])
+
 
   useControls(
     'lenis',

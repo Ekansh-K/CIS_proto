@@ -2,16 +2,21 @@ import { Layout } from 'layouts/default'
 import { useStore } from 'lib/store'
 import { useEffect, useState, useRef } from 'react'
 import s from './events.module.scss'
-import cn from 'clsx'
 import { useRouter } from 'next/router'
 import { EventsContent } from 'components/events-content'
 import { gsap } from 'gsap'
+import { supabase } from 'lib/supabase'
 
 export default function Events() {
-    const { transition, setTransition } = useStore()
+    const { setTransition } = useStore()
     const [theme, setTheme] = useState('dark') // Default Dark
     const [activeTab, setActiveTab] = useState('upcoming') // Lifted State
     const router = useRouter()
+
+    // Data State
+    const [events, setEvents] = useState([])
+    const [user, setUser] = useState(null)
+    const [registrations, setRegistrations] = useState([])
 
     // Refs for layers
     const darkLayerRef = useRef(null)
@@ -19,9 +24,116 @@ export default function Events() {
     const [isAnimating, setIsAnimating] = useState(false)
 
     useEffect(() => {
+        // Check if returning from Login (Hash present)
+        const isReturningFromAuth = window.location.hash.includes('access_token')
+
         // Initial page load reveal (Global white overlay)
-        setTransition({ state: 'collapsing' })
+        // If returning from auth, skip the animation (duration: 0)
+        setTransition({ state: 'collapsing', duration: isReturningFromAuth ? 0 : 0.8 })
+
+        // Fetch Data
+        fetchEvents()
+
+        // Listen for Auth Changes (Login, Logout, Initial Session)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log("Supabase Auth Event:", event);
+            console.log("Session:", session);
+
+            if (session) {
+                setUser(session.user)
+                fetchRegistrations(session.user.id)
+            } else {
+                setUser(null)
+                setRegistrations([])
+            }
+        })
+
+        return () => subscription.unsubscribe()
     }, [setTransition])
+
+    async function fetchEvents() {
+        const { data } = await supabase
+            .from('events')
+            .select('*')
+            .order('date', { ascending: true })
+        if (data) setEvents(data)
+    }
+
+    async function fetchRegistrations(userId) {
+        const { data } = await supabase
+            .from('registrations')
+            .select('event_id')
+            .eq('user_id', userId)
+
+        if (data) {
+            setRegistrations(data.map(r => r.event_id))
+        }
+    }
+
+    const handleLogin = async () => {
+        const redirectUrl = window.location.origin + '/events'
+        console.log("Logging in... Redirecting to:", redirectUrl);
+
+        await supabase.auth.signInWithOAuth({
+            provider: 'azure',
+            options: {
+                redirectTo: redirectUrl,
+                scopes: 'openid profile email user.read',
+                queryParams: {
+                    prompt: 'select_account'
+                }
+            }
+        })
+    }
+
+    const handleRegister = async (event) => {
+        if (!user) {
+            // Login with Azure
+            await supabase.auth.signInWithOAuth({
+                provider: 'azure',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            })
+            return
+        }
+
+        if (!user.email.endsWith('@bl.students.amrita.edu') && user.email !== 'ieeecisaseb@gmail.com') {
+            alert('Registration Restricted: You must use your @bl.students.amrita.edu email address.')
+            await supabase.auth.signOut()
+            setUser(null)
+            return
+        }
+
+        if (registrations.includes(event.id)) {
+            alert('You are already registered!')
+            return
+        }
+
+        // Register
+        const { error } = await supabase
+            .from('registrations')
+            .insert([{
+                event_id: event.id,
+                user_id: user.id,
+                user_email: user.email,
+                full_name: user.user_metadata?.full_name || user.email
+            }])
+
+        if (error) {
+            alert('Registration failed: ' + error.message)
+        } else {
+            alert('Successfully registered!')
+            setRegistrations([...registrations, event.id])
+        }
+    }
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut()
+        setUser(null)
+        setRegistrations([])
+        alert('Logged out successfully.')
+    }
 
     const goBack = () => {
         setTransition({
@@ -54,22 +166,6 @@ export default function Events() {
         const distY = Math.max(y, viewportHeight - y)
         const radius = Math.sqrt(distX * distX + distY * distY)
 
-        // Ensure proper stacking order for animation
-        // The one we rely on for "Next" is currently visually hidden (clipPath=0) and needs to be on TOP for the mask to work?
-        // Actually, if we use Z-Index Swap:
-        // Bottom Layer (Current) is Full.
-        // Top Layer (Next) is 0.
-        // We expand Top Layer.
-        // When Top Layer is Full, it Covers Bottom.
-        // Then we Swap state: "Top" becomes "Current" (Bottom). "Bottom" becomes "Next" (Top).
-        // And we reset the new Top to 0.
-
-        // So:
-        // If Current is Dark: Dark is Z=1. Light is Z=2. Light is clip 0.
-        // Animate Light to Full.
-        // Set Theme = Light.
-        // Now Light is Z=1. Dark is Z=2. Dark needs to be clip 0.
-
         gsap.set(targetLayer, {
             clipPath: `circle(0px at ${x}px ${y}px)`,
             zIndex: 10, // Ensure it's on top during animation
@@ -83,13 +179,6 @@ export default function Events() {
             onComplete: () => {
                 setTheme(nextTheme)
                 setIsAnimating(false)
-
-                // Reset the OLD layer (which is now the "Next" layer conceptually)
-                // We rely on React state to update z-indices based on 'theme'.
-                // Ideally, we wait for re-render?
-                // But GSAP might hold styles.
-                // Safest: Clear props on the "New Current" (targetLayer) so CSS takes over?
-                // And Force 0 Clip on the "New Next".
 
                 const oldLayer = nextTheme === 'light' ? darkLayerRef.current : lightLayerRef.current
 
@@ -110,6 +199,7 @@ export default function Events() {
                 description: 'Upcoming and past events',
             }}
             hideFooter
+            hideScrollbar={true}
             className={s.eventsPageWrapper}
         >
             <div className={s.layersContainer}>
@@ -118,12 +208,10 @@ export default function Events() {
                     className={s.layer}
                     ref={darkLayerRef}
                     style={{
-                        zIndex: theme === 'dark' ? 1 : 2, // If Dark active, it's bottom. If Light active, Dark is Top (waiting).
-                        // Actually, simpler: Active is always bottom. Inactive is Top (masked).
-                        // Wait, if Inactive is Top, it blocks clicks?
-                        // pointer-events: none for Inactive.
+                        position: theme === 'dark' ? 'relative' : 'absolute',
+                        zIndex: theme === 'dark' ? 1 : 2,
                         pointerEvents: theme === 'dark' ? 'auto' : 'none',
-                        visibility: theme === 'dark' ? 'visible' : 'hidden' // Initially hidden if inactive
+                        visibility: theme === 'dark' ? 'visible' : 'hidden'
                     }}
                 >
                     <EventsContent
@@ -132,6 +220,12 @@ export default function Events() {
                         setActiveTab={setActiveTab}
                         goBack={goBack}
                         toggleTheme={toggleTheme}
+                        events={events}
+                        user={user}
+                        registrations={registrations}
+                        onRegister={handleRegister}
+                        onLogin={handleLogin}
+                        onLogout={handleLogout}
                     />
                 </div>
 
@@ -140,6 +234,7 @@ export default function Events() {
                     className={s.layer}
                     ref={lightLayerRef}
                     style={{
+                        position: theme === 'light' ? 'relative' : 'absolute',
                         zIndex: theme === 'light' ? 1 : 2,
                         pointerEvents: theme === 'light' ? 'auto' : 'none',
                         visibility: theme === 'light' ? 'visible' : 'hidden'
@@ -151,6 +246,12 @@ export default function Events() {
                         setActiveTab={setActiveTab}
                         goBack={goBack}
                         toggleTheme={toggleTheme}
+                        events={events}
+                        user={user}
+                        registrations={registrations}
+                        onRegister={handleRegister}
+                        onLogin={handleLogin}
+                        onLogout={handleLogout}
                     />
                 </div>
             </div>
