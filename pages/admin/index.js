@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 import s from './admin.module.scss'
-import cn from 'clsx'
+
 
 export default function AdminDashboard() {
     const router = useRouter()
