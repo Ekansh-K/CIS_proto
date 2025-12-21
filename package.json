@@ -23,6 +23,8 @@
     "@supabase/supabase-js": "^2.89.0",
     "@vercel/analytics": "^1.6.1",
     "clsx": "^1.2.1",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "glslify-loader": "^2.0.0",
     "gsap": "3.13.0",
     "lenis": "^1.1.13",
@@ -66,7 +68,12 @@
       "react-is": "18.2.0",
       "scheduler": "0.23.0",
       "throttle-debounce": "5.0.0",
-      "zustand": "4.3.6"
+      "zustand": "4.3.6",
+      "clsx": "2.1.1",
+      "@floating-ui/core": "1.7.3",
+      "@floating-ui/dom": "1.7.4",
+      "@floating-ui/react-dom": "2.1.6",
+      "@floating-ui/utils": "0.2.8"
     }
   }
 }
