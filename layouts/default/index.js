@@ -111,7 +111,7 @@ export function Layout({
       <CustomHead {...seo} />
       <div className={cn(`theme-${theme}`, s.layout, className)}>
         <PageTransition />
-        <Intro />
+        {router.pathname === '/' && <Intro />}
         <Cursor />
         {!hideScrollbar && <Scrollbar />}
         <main className={s.main}>{children}</main>
