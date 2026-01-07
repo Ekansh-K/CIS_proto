@@ -110,14 +110,20 @@ export default function Events() {
             return
         }
 
+        // Sanitize user input to prevent injection attacks
+        const sanitize = (str) => {
+            if (!str) return str
+            return String(str).replace(/[<>'"]/g, '').trim().slice(0, 255)
+        }
+
         // Register
         const { error } = await supabase
             .from('registrations')
             .insert([{
                 event_id: event.id,
                 user_id: user.id,
-                user_email: user.email,
-                full_name: user.user_metadata?.full_name || user.email
+                user_email: sanitize(user.email),
+                full_name: sanitize(user.user_metadata?.full_name || user.email)
             }])
 
         if (error) {

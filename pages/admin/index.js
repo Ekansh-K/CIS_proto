@@ -133,8 +133,28 @@ export default function AdminDashboard() {
     const uploadImage = async () => {
         if (!imageFile) return formData.image_url
 
-        const fileExt = imageFile.name.split('.').pop()
-        const fileName = `${Math.random()}.${fileExt}`
+        // Validate file type (security: prevent malicious file uploads)
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if (!allowedTypes.includes(imageFile.type)) {
+            alert('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.')
+            return null
+        }
+
+        // Validate file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024
+        if (imageFile.size > maxSize) {
+            alert('File too large. Maximum size is 5MB.')
+            return null
+        }
+
+        const fileExt = imageFile.name.split('.').pop().toLowerCase()
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        if (!allowedExtensions.includes(fileExt)) {
+            alert('Invalid file extension.')
+            return null
+        }
+
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
         const filePath = `${fileName}`
 
         const { error: uploadError } = await supabaseAdmin.storage
@@ -150,9 +170,33 @@ export default function AdminDashboard() {
         return data.publicUrl
     }
 
+    // Sanitize text input to prevent XSS
+    const sanitizeInput = (str) => {
+        if (!str) return str
+        return String(str).replace(/[<>]/g, '').trim()
+    }
+
+    // Validate URL format
+    const isValidUrl = (url) => {
+        if (!url) return true // optional field
+        try {
+            new URL(url)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         setLoading(true)
+
+        // Validate registration link URL
+        if (formData.registration_link && !isValidUrl(formData.registration_link)) {
+            alert('Invalid registration link URL format.')
+            setLoading(false)
+            return
+        }
 
         const finalImageUrl = await uploadImage()
         if (finalImageUrl === null && imageFile) {
@@ -160,9 +204,18 @@ export default function AdminDashboard() {
             return
         }
 
+        // Sanitize all text inputs before saving
         const payload = {
-            ...formData,
-            image_url: finalImageUrl || formData.image_url // keep old if no new upload
+            title: sanitizeInput(formData.title),
+            description: sanitizeInput(formData.description),
+            category: formData.category,
+            date: formData.date,
+            image_url: finalImageUrl || formData.image_url,
+            registration_link: formData.registration_link,
+            registration_status: formData.registration_status,
+            venue: sanitizeInput(formData.venue),
+            event_time: sanitizeInput(formData.event_time),
+            registration_open_time: formData.registration_open_time
         }
 
         let error
