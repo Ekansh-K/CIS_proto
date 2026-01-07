@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import * as XLSX from 'xlsx'
 import s from './admin.module.scss'
 
 
@@ -25,8 +26,6 @@ export default function AdminDashboard() {
         description: '',
         category: 'upcoming',
         date: new Date(),
-        image_url: '',
-        registration_link: '',
         image_url: '',
         registration_link: '',
         registration_status: 'open',
@@ -78,8 +77,6 @@ export default function AdminDashboard() {
                 date: event.date ? new Date(event.date) : new Date(),
                 image_url: event.image_url || '',
                 registration_link: event.registration_link || '',
-                image_url: event.image_url || '',
-                registration_link: event.registration_link || '',
                 registration_status: event.registration_status || 'open',
                 venue: event.venue || '',
                 event_time: event.event_time || '',
@@ -110,11 +107,27 @@ export default function AdminDashboard() {
     }
 
     const deleteEvent = async (id) => {
-        if (!confirm('Are you sure you want to delete this event?')) return
+        if (!confirm('Are you sure you want to delete this event? This will also delete all registrations associated with it.')) return
 
+        // 1. Delete associated registrations first
+        const { error: regError } = await supabaseAdmin
+            .from('registrations')
+            .delete()
+            .eq('event_id', id)
+
+        if (regError) {
+            alert('Error deleting associated registrations: ' + regError.message)
+            return
+        }
+
+        // 2. Delete the event
         const { error } = await supabaseAdmin.from('events').delete().eq('id', id)
-        if (!error) fetchEvents()
-        else alert('Error deleting event')
+
+        if (!error) {
+            fetchEvents()
+        } else {
+            alert('Error deleting event: ' + error.message)
+        }
     }
 
     const uploadImage = async () => {
@@ -125,7 +138,7 @@ export default function AdminDashboard() {
         const filePath = `${fileName}`
 
         const { error: uploadError } = await supabaseAdmin.storage
-            .from('event_poster')
+            .from('event_posters')
             .upload(filePath, imageFile)
 
         if (uploadError) {
@@ -133,7 +146,7 @@ export default function AdminDashboard() {
             return null
         }
 
-        const { data } = supabaseAdmin.storage.from('event_poster').getPublicUrl(filePath)
+        const { data } = supabaseAdmin.storage.from('event_posters').getPublicUrl(filePath)
         return data.publicUrl
     }
 
@@ -355,33 +368,54 @@ export default function AdminDashboard() {
             {/* Registrations Modal */}
             {isRegModalOpen && (
                 <div className={s.overlay}>
-                    <div className={s.modal} style={{ maxWidth: '800px' }}>
-                        <h2>Registrations</h2>
-                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <div className={s.modal} style={{ maxWidth: '900px', width: '90%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h2>Registrations ({currentRegistrations.length})</h2>
+                            <button
+                                onClick={() => {
+                                    if (currentRegistrations.length === 0) return
+                                    const ws = XLSX.utils.json_to_sheet(currentRegistrations.map(r => ({
+                                        Email: r.user_email,
+                                        FullName: r.full_name || '-',
+                                        Date: new Date(r.created_at).toLocaleDateString(),
+                                        Time: new Date(r.created_at).toLocaleTimeString()
+                                    })))
+                                    const wb = XLSX.utils.book_new()
+                                    XLSX.utils.book_append_sheet(wb, ws, "Registrations")
+                                    XLSX.writeFile(wb, `registrations.xlsx`)
+                                }}
+                                className={s.adminBtn}
+                                style={{ background: '#27ae60', borderColor: '#27ae60', fontSize: '0.9rem' }}
+                            >
+                                Download Excel
+                            </button>
+                        </div>
+
+                        <div style={{ maxHeight: '500px', overflowY: 'auto', border: '1px solid #444', borderRadius: '4px' }}>
                             {currentRegistrations.length === 0 ? (
-                                <p>No registrations yet.</p>
+                                <p style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>No registrations yet.</p>
                             ) : (
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                    <thead style={{ borderBottom: '1px solid #444' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                                    <thead style={{ background: '#222', position: 'sticky', top: 0, zIndex: 1 }}>
                                         <tr>
-                                            <th style={{ padding: '0.5rem' }}>Email</th>
-                                            <th style={{ padding: '0.5rem' }}>Full Name</th>
-                                            <th style={{ padding: '0.5rem' }}>Date</th>
+                                            <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Email</th>
+                                            <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Full Name</th>
+                                            <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Registered At</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {currentRegistrations.map(reg => (
-                                            <tr key={reg.id} style={{ borderBottom: '1px solid #333' }}>
-                                                <td style={{ padding: '0.5rem' }}>{reg.user_email}</td>
-                                                <td style={{ padding: '0.5rem' }}>{reg.full_name || '-'}</td>
-                                                <td style={{ padding: '0.5rem' }}>{new Date(reg.created_at).toLocaleDateString()}</td>
+                                        {currentRegistrations.map((reg, i) => (
+                                            <tr key={reg.id} style={{ borderBottom: '1px solid #333', background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+                                                <td style={{ padding: '0.8rem 1rem' }}>{reg.user_email}</td>
+                                                <td style={{ padding: '0.8rem 1rem' }}>{reg.full_name || '-'}</td>
+                                                <td style={{ padding: '0.8rem 1rem' }}>{new Date(reg.created_at).toLocaleString()}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             )}
                         </div>
-                        <div className={s.buttons}>
+                        <div className={s.buttons} style={{ marginTop: '1.5rem' }}>
                             <button onClick={() => setIsRegModalOpen(false)} className={s.adminBtn}>Close</button>
                         </div>
                     </div>

@@ -14,17 +14,19 @@
     }
 
     .events {
-        background-color: var(--bg-color, var(--white));
-        color: var(--text-color, var(--black));
+        --bg-color: #ffffff;
+        --text-color: #000000;
+        background-color: var(--bg-color);
+        color: var(--text-color);
         min-height: 100vh;
         width: 100%;
-        padding-top: 200px;
+        padding-top: 60px;
         // removed transition: background-color... because masking handles it nicely now?
         // Actually keep it just in case, but mask is primary.
 
         &.dark {
             --bg-color: #272727;
-            --text-color: var(--white);
+            --text-color: #ffffff;
 
             // Invert tabs style for dark mode
             .tabs button {
@@ -34,7 +36,15 @@
             }
 
             .placeholder {
-                border-color: var(--white);
+                border-color: #ffffff;
+            }
+
+            .authBtn,
+            .btn {
+                &:hover:not(:disabled) {
+                    background: #fff;
+                    color: #000;
+                }
             }
         }
 
@@ -102,8 +112,8 @@
             letter-spacing: 0.05em;
 
             &:hover {
-                background: currentColor;
-                color: var(--bg-color);
+                background: #000;
+                color: #fff;
             }
         }
 
@@ -126,6 +136,24 @@
             svg {
                 width: 24px;
                 height: 24px;
+            }
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+
+            &:hover {
+                opacity: 1;
+                transform: scale(1.1);
             }
         }
 
@@ -282,8 +310,8 @@
                         outline: none;
 
                         &:hover:not(:disabled) {
-                            background: currentColor;
-                            color: var(--bg-color); // Invert
+                            background: #000;
+                            color: #fff; // Invert
                         }
 
                         &:disabled {

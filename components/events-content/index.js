@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 const Sun = dynamic(() => import('icons/sun.svg'), { ssr: false })
 const Moon = dynamic(() => import('icons/moon.svg'), { ssr: false })
 const Arrow = dynamic(() => import('icons/arrow-buttons.svg'), { ssr: false })
+const Logout = dynamic(() => import('icons/logout.svg'), { ssr: false })
 
 export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActiveTab, events = [], user, registrations = [], onRegister, onLogin, onLogout }) => {
 
@@ -15,10 +16,24 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
         { id: 'past', label: 'Past' },
     ]
 
+    const [notification, setNotification] = useState(null)
+    const [showLogoutModal, setShowLogoutModal] = useState(false)
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true)
+    }
+
+    const confirmLogout = () => {
+        setShowLogoutModal(false)
+        onLogout()
+        setNotification('Logged out successfully')
+        setTimeout(() => setNotification(null), 2000)
+    }
+
     const filteredEvents = events.filter(e => e.category === activeTab)
 
     return (
-        <div className={cn(s.events, theme === 'dark' && s.dark)} style={{ minHeight: '100vh', paddingTop: '200px' }}>
+        <div className={cn(s.events, theme === 'dark' && s.dark)} style={{ minHeight: '100vh', paddingTop: '60px' }}>
             <div className={s.inner}>
                 <div className={s['header-row']}>
                     <div className={s.left}>
@@ -31,23 +46,31 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                     </div>
 
                     <div className={s.right} style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        {user ? (
-                            <div className={s.userProfile} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '10px' }}>
-                                <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                                    {user.user_metadata?.full_name || user.user_metadata?.name || 'User'}
-                                </span>
-                                <span style={{ fontSize: '12px', opacity: 0.7 }}>
-                                    {user.email}
-                                </span>
-                                <button className={s.authBtn} onClick={onLogout} style={{ fontSize: '12px', padding: '4px 8px', marginTop: '4px' }}>
-                                    Logout
+
+                        {
+                            user ? (
+                                <>
+                                    <div className={s.userProfile} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <span style={{ fontWeight: 'bold', fontSize: '1.25rem', lineHeight: '1.2' }}>
+                                            {user.user_metadata?.full_name || user.user_metadata?.name || 'User'}
+                                        </span>
+                                        <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>
+                                            {user.email}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={handleLogoutClick}
+                                        aria-label="Logout"
+                                        className={s['logout-btn']}
+                                    >
+                                        <Logout style={{ width: '24px', height: '24px' }} />
+                                    </button>
+                                </>
+                            ) : (
+                                <button className={s.authBtn} onClick={onLogin}>
+                                    Login
                                 </button>
-                            </div>
-                        ) : (
-                            <button className={s.authBtn} onClick={onLogin}>
-                                Login
-                            </button>
-                        )}
+                            )}
                         <button className={s['theme-toggle']} onClick={toggleTheme} aria-label="Toggle Dark Mode">
                             {theme === 'light' ? <Moon /> : <Sun />}
                         </button>
@@ -120,7 +143,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                 <h3 className={s['card-title']} style={{ fontSize: '2.5rem', marginBottom: '0.5rem', lineHeight: '1.1' }}>{event.title}</h3>
                                             </div>
 
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 2rem', fontSize: '1.1rem', color: '#ccc' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 2rem', fontSize: '1.1rem', color: theme === 'dark' ? '#ccc' : 'black' }}>
                                                 <span style={{ fontWeight: 'bold' }}>Date :</span>
                                                 <span>{event.date ? new Date(event.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}</span>
 
@@ -179,7 +202,103 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                     )}
                 </div>
             </div>
-        </div>
+            {showLogoutModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(5px)',
+                    zIndex: 10000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        padding: '40px',
+                        borderRadius: '24px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '24px',
+                        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                        minWidth: '320px'
+                    }}>
+                        <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>Logout?</h3>
+                        <p style={{ margin: 0, textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>Are you sure you want to exit?</p>
+
+                        <div style={{ display: 'flex', gap: '16px', width: '100%', marginTop: '10px' }}>
+                            <button
+                                onClick={() => setShowLogoutModal(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'transparent',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                                onMouseLeave={e => e.target.style.background = 'transparent'}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmLogout}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    background: '#fff',
+                                    color: '#000',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.target.style.transform = 'scale(1.02)'}
+                                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                            >
+                                Yes, Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {notification && (
+                <div style={{
+                    position: 'fixed',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,0,0,0.85)',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '50px',
+                    zIndex: 9999,
+                    fontSize: '1rem',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                    <Logout style={{ width: '20px', height: '20px' }} /> {notification}
+                </div>
+            )}
+        </div >
     )
 }
 
