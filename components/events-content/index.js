@@ -18,6 +18,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
     const [notification, setNotification] = useState(null)
     const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [showLoginModal, setShowLoginModal] = useState(false)
 
     const handleLogoutClick = () => {
         setShowLogoutModal(true)
@@ -183,7 +184,15 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                             ) : (
                                                                 <button
                                                                     className={cn(s.btn, isRegistered && s.registered)}
-                                                                    onClick={() => !isRegistered && onRegister(event)}
+                                                                    onClick={() => {
+                                                                        if (!isRegistered) {
+                                                                            if (!user) {
+                                                                                setShowLoginModal(true)
+                                                                            } else {
+                                                                                onRegister(event)
+                                                                            }
+                                                                        }
+                                                                    }}
                                                                     disabled={isRegistered}
                                                                     style={{ fontSize: '1.1rem', padding: '12px 24px' }}
                                                                 >
@@ -270,6 +279,84 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                             >
                                 Yes, Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Login Modal */}
+            {showLoginModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(5px)',
+                    zIndex: 10000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        padding: '40px',
+                        borderRadius: '24px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '24px',
+                        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                        minWidth: '320px'
+                    }}>
+                        <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>Login Required</h3>
+                        <p style={{ margin: 0, textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>You must be logged in to register for events.</p>
+
+                        <div style={{ display: 'flex', gap: '16px', width: '100%', marginTop: '10px' }}>
+                            <button
+                                onClick={() => setShowLoginModal(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'transparent',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                                onMouseLeave={e => e.target.style.background = 'transparent'}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowLoginModal(false)
+                                    onLogin()
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    background: '#fff',
+                                    color: '#000',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.target.style.transform = 'scale(1.02)'}
+                                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                            >
+                                Login
                             </button>
                         </div>
                     </div>
