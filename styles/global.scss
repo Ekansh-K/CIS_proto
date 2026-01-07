@@ -19,7 +19,13 @@
 
 html {
   font-family: var(--font-anton);
-  scrollbar-width: thin;
+  // scrollbar-width: thin;
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // IE/Edge
+
+  &::-webkit-scrollbar {
+    display: none; // Chrome/Safari/Opera
+  }
 
   &.nav {
     overflow: hidden;
