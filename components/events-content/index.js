@@ -229,7 +229,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                 <h3 className={cn(s['card-title'], s.cardTitleLarge)}>{event.title}</h3>
                                             </div>
 
-                                            <div className={s.eventDetails} style={{ color: theme === 'dark' ? '#ccc' : 'black' }}>
+                                            <div className={s.eventDetails}>
                                                 <span className={s.detailLabel}>Date :</span>
                                                 <span>{event.date ? new Date(event.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}</span>
 
@@ -247,14 +247,13 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
                                                 {event.venue && (
                                                     <>
-                                                        <span className={s.detailLabelWithMargin}>Venue</span>
-                                                        <span className={s.detailValueWithMargin}>{event.venue}</span>
+                                                        <span className={s.detailLabel}>Venue :</span>
+                                                        <span>{event.venue}</span>
                                                     </>
                                                 )}
 
-                                                <span className={s.detailLabelWithMargin}>Registration</span>
+                                                <span className={s.detailLabel}>Registration :</span>
                                                 <span className={cn(
-                                                    s.detailValueWithMargin,
                                                     displayStatus === 'open' && s.statusOpen,
                                                     displayStatus === 'on-hold' && s.statusOnHold,
                                                     displayStatus === 'closed' && s.statusClosed
