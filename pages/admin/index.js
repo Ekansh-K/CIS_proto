@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef } from 'react'
 import { supabaseAdmin } from 'lib/supabase'
 import { useRouter } from 'next/router'
 
@@ -7,6 +7,14 @@ import "react-datepicker/dist/react-datepicker.css"
 import * as XLSX from 'xlsx'
 import s from './admin.module.scss'
 
+// Custom Date Input Component
+const CustomDateInput = forwardRef(({ value, onClick }, ref) => (
+    <button className={s.datePickerTrigger} onClick={onClick} ref={ref} type="button">
+        {value || "Select date"}
+        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>▼</span>
+    </button>
+))
+CustomDateInput.displayName = "CustomDateInput"
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -204,15 +212,41 @@ export default function AdminDashboard() {
             return
         }
 
+        // --- Auto Classification Logic ---
+        const now = new Date();
+        const eventDate = new Date(formData.date);
+        
+        // Calculate Category
+        // Reset time to compare dates only for category
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const eDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+        
+        let calculatedCategory = 'upcoming';
+        if (eDate < today) calculatedCategory = 'past';
+        else if (eDate.getTime() === today.getTime()) calculatedCategory = 'current';
+
+        // Calculate Registration Status
+        let calculatedRegStatus = 'open'; // Default
+        if (calculatedCategory === 'past') {
+            calculatedRegStatus = 'closed';
+        } else if (formData.registration_open_time) {
+            const regOpenTime = new Date(formData.registration_open_time);
+            if (now < regOpenTime) {
+                calculatedRegStatus = 'closed'; // Hasn't opened yet
+            } else {
+                calculatedRegStatus = 'open';
+            }
+        }
+        
         // Sanitize all text inputs before saving
         const payload = {
             title: sanitizeInput(formData.title),
             description: sanitizeInput(formData.description),
-            category: formData.category,
+            category: calculatedCategory,
             date: formData.date,
             image_url: finalImageUrl || formData.image_url,
             registration_link: formData.registration_link,
-            registration_status: formData.registration_status,
+            registration_status: calculatedRegStatus,
             venue: sanitizeInput(formData.venue),
             event_time: sanitizeInput(formData.event_time),
             registration_open_time: formData.registration_open_time
@@ -309,60 +343,91 @@ export default function AdminDashboard() {
                                 />
                             </div>
 
-                            <div className={s.row}>
-                                <div className={s.inputGroup}>
-                                    <label>Category</label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                        style={{ padding: '0.8rem', background: '#333', color: 'white', border: '1px solid #444', borderRadius: '4px' }}
-                                    >
-                                        <option value="upcoming">Upcoming</option>
-                                        <option value="current">Current</option>
-                                        <option value="past">Past</option>
-                                    </select>
-                                </div>
-                                <div className={s.inputGroup}>
+                            {/* Event Date & Time */}
+                            <div className={s.row} style={{ gap: '1rem' }}>
+                                <div className={s.inputGroup} style={{ flex: 1 }}>
                                     <label>Date</label>
-                                    <DatePicker
-                                        selected={formData.date}
-                                        onChange={date => setFormData({ ...formData, date })}
-                                        className={s.datePicker}
-                                        wrapperClassName={s.datePickerWrapper}
-                                    />
+                                    <div className={s.datePickerWrapper}>
+                                        <DatePicker
+                                            selected={formData.date}
+                                            onChange={date => setFormData({ ...formData, date })}
+                                            customInput={<CustomDateInput />}
+                                            showMonthDropdown
+                                            showYearDropdown
+                                            dropdownMode="select"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className={s.row}>
-                                <div className={s.inputGroup}>
+                                <div className={s.inputGroup} style={{ flex: 1 }}>
                                     <label>Event Time</label>
                                     <input
+                                        type="time"
                                         value={formData.event_time}
                                         onChange={e => setFormData({ ...formData, event_time: e.target.value })}
-                                        placeholder="e.g. 10:00 AM"
-                                    />
-                                </div>
-                                <div className={s.inputGroup}>
-                                    <label>Venue</label>
-                                    <input
-                                        value={formData.venue}
-                                        onChange={e => setFormData({ ...formData, venue: e.target.value })}
-                                        placeholder="e.g. Main Auditorium"
+                                        className={s.timeInput}
+                                        style={{ colorScheme: 'dark' }} 
                                     />
                                 </div>
                             </div>
 
                             <div className={s.inputGroup}>
-                                <label>Registration Opens At (Optional)</label>
-                                <DatePicker
-                                    selected={formData.registration_open_time}
-                                    onChange={date => setFormData({ ...formData, registration_open_time: date })}
-                                    showTimeSelect
-                                    dateFormat="Pp"
-                                    placeholderText="Click to select date and time"
-                                    className={s.datePicker}
-                                    wrapperClassName={s.datePickerWrapper}
+                                <label>Venue</label>
+                                <input
+                                    value={formData.venue}
+                                    onChange={e => setFormData({ ...formData, venue: e.target.value })}
+                                    placeholder="e.g. Main Auditorium"
                                 />
+                            </div>
+
+                            {/* Registration Opens At - Split Date/Time */}
+                            <div className={s.inputGroup}>
+                                <label>Registration Opens At (Optional)</label>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <DatePicker
+                                            selected={formData.registration_open_time}
+                                            onChange={date => {
+                                                const newDate = formData.registration_open_time ? new Date(formData.registration_open_time) : new Date();
+                                                if (date) {
+                                                    newDate.setFullYear(date.getFullYear());
+                                                    newDate.setMonth(date.getMonth());
+                                                    newDate.setDate(date.getDate());
+                                                }
+                                                setFormData({ ...formData, registration_open_time: newDate });
+                                            }}
+                                            customInput={<CustomDateInput />}
+                                            showMonthDropdown
+                                            showYearDropdown
+                                            dropdownMode="select"
+                                            placeholderText="Select Date"
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <input
+                                            type="time"
+                                            value={formData.registration_open_time ? new Date(formData.registration_open_time).toTimeString().slice(0, 5) : ''}
+                                            onChange={e => {
+                                                const timeStr = e.target.value;
+                                                if (timeStr) {
+                                                    const [hours, mins] = timeStr.split(':');
+                                                    const current = formData.registration_open_time ? new Date(formData.registration_open_time) : new Date();
+                                                    current.setHours(parseInt(hours));
+                                                    current.setMinutes(parseInt(mins));
+                                                    setFormData({ ...formData, registration_open_time: current });
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '0.8rem',
+                                                background: '#333',
+                                                border: '1px solid #444',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                width: '100%',
+                                                colorScheme: 'dark'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className={s.inputGroup}>
@@ -387,26 +452,13 @@ export default function AdminDashboard() {
                                 )}
                             </div>
 
-                            <div className={s.row}>
-                                <div className={s.inputGroup}>
-                                    <label>Registration Status</label>
-                                    <select
-                                        value={formData.registration_status}
-                                        onChange={e => setFormData({ ...formData, registration_status: e.target.value })}
-                                        style={{ padding: '0.8rem', background: '#333', color: 'white', border: '1px solid #444', borderRadius: '4px' }}
-                                    >
-                                        <option value="open">Open</option>
-                                        <option value="closed">Closed</option>
-                                    </select>
-                                </div>
-                                <div className={s.inputGroup}>
-                                    <label>External Link (Optional)</label>
-                                    <input
-                                        value={formData.registration_link}
-                                        onChange={e => setFormData({ ...formData, registration_link: e.target.value })}
-                                        placeholder="https://..."
-                                    />
-                                </div>
+                            <div className={s.inputGroup}>
+                                <label>External Link (Optional)</label>
+                                <input
+                                    value={formData.registration_link}
+                                    onChange={e => setFormData({ ...formData, registration_link: e.target.value })}
+                                    placeholder="https://..."
+                                />
                             </div>
 
                             <div className={s.buttons}>
