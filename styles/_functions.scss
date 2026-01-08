@@ -31,10 +31,7 @@
 }
 
 @function columns($columns) {
-  @return calc(
-    (#{$columns} * var(--layout-column-width)) +
-      ((#{$columns} - 1) * var(--layout-columns-gap))
-  );
+  @return calc((#{$columns} * var(--layout-column-width)) + ((#{$columns} - 1) * var(--layout-columns-gap)));
 }
 
 @mixin hover {
