@@ -232,7 +232,7 @@ export default function AdminDashboard() {
         } else if (formData.registration_open_time) {
             const regOpenTime = new Date(formData.registration_open_time);
             if (now < regOpenTime) {
-                calculatedRegStatus = 'closed'; // Hasn't opened yet
+                calculatedRegStatus = 'on-hold'; // Hasn't opened yet
             } else {
                 calculatedRegStatus = 'open';
             }

@@ -104,6 +104,12 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 const now = new Date()
                                 const opensAt = event.registration_open_time ? new Date(event.registration_open_time) : null
                                 const isRegistrationOpen = !opensAt || now >= opensAt
+                                
+                                // Calculate dynamic registration status
+                                let displayStatus = event.registration_status;
+                                if (opensAt && now < opensAt && event.registration_status !== 'closed') {
+                                    displayStatus = 'on-hold';
+                                }
 
                                 // PAST EVENTS LAYOUT (VERTICAL SIMPLE)
                                 if (activeTab === 'past') {
@@ -163,8 +169,12 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                 )}
 
                                                 <span style={{ fontWeight: 'bold', marginTop: '1rem' }}>Registration</span>
-                                                <span style={{ marginTop: '1rem', textTransform: 'capitalize', color: event.registration_status === 'open' ? '#4caf50' : '#f44336' }}>
-                                                    {event.registration_status}
+                                                <span style={{ 
+                                                    marginTop: '1rem', 
+                                                    textTransform: 'capitalize', 
+                                                    color: displayStatus === 'open' ? '#4caf50' : displayStatus === 'on-hold' ? '#ebc034' : '#f44336' 
+                                                }}>
+                                                    {displayStatus}
                                                 </span>
                                             </div>
 
