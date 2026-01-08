@@ -415,7 +415,7 @@ export default function Home() {
         <div className={s.inner}>
           <div className={s.zoom}>
             <h2 className={cn(s.first, 'h1 vh')}>
-              We Present to u<br />
+              We Present to you<br />
               <span className="contrast">Our Club</span>
             </h2>
             <h2 className={cn(s.enter, 'h3 vh')}>
