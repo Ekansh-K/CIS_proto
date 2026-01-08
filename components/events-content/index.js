@@ -151,6 +151,12 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                     displayStatus = 'on-hold';
                                 }
 
+                                // Check if event is full
+                                const currentRegistrations = event.currentRegistrations || 0
+                                const maxRegistrations = event.max_registrations || null
+                                const isFull = maxRegistrations && currentRegistrations >= maxRegistrations
+                                const spotsLeft = maxRegistrations ? maxRegistrations - currentRegistrations : null
+
                                 const hasDescription = !!event.description;
 
                                 // Handler for keyboard accessibility
@@ -254,15 +260,19 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
                                                 <span className={s.detailLabel}>Registration :</span>
                                                 <span className={cn(
-                                                    displayStatus === 'open' && s.statusOpen,
+                                                    displayStatus === 'open' && !isFull && s.statusOpen,
                                                     displayStatus === 'on-hold' && s.statusOnHold,
-                                                    displayStatus === 'closed' && s.statusClosed
+                                                    (displayStatus === 'closed' || isFull) && s.statusClosed
                                                 )}>
-                                                    {displayStatus}
+                                                    {isFull ? 'Full' : displayStatus}
+                                                    {spotsLeft !== null && !isFull && displayStatus === 'open' && (
+                                                        <span className={s.spotsLeft}> ({spotsLeft} spots left)</span>
+                                                    )}
                                                     <span className="sr-only">
-                                                        {displayStatus === 'open' && ' - Registration is currently open'}
+                                                        {isFull && ' - Event is full, no more registrations available'}
+                                                        {displayStatus === 'open' && !isFull && ' - Registration is currently open'}
                                                         {displayStatus === 'on-hold' && ' - Registration opens soon'}
-                                                        {displayStatus === 'closed' && ' - Registration is closed'}
+                                                        {displayStatus === 'closed' && !isFull && ' - Registration is closed'}
                                                     </span>
                                                 </span>
                                             </div>
@@ -273,7 +283,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                     Opens in: <Countdown targetDate={opensAt} />
                                                 </div>
                                             ) : (
-                                                activeTab !== 'past' && event.registration_status !== 'closed' && (
+                                                activeTab !== 'past' && event.registration_status !== 'closed' && !isFull && (
                                                     <div className={s.actionsWrapper}>
                                                         <div className={s.actions}>
                                                             {event.registration_link ? (

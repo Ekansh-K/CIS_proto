@@ -17,6 +17,7 @@ export default function Events() {
     const [events, setEvents] = useState([])
     const [user, setUser] = useState(null)
     const [registrations, setRegistrations] = useState([])
+    const [eventRegistrationCounts, setEventRegistrationCounts] = useState({}) // Track registration counts per event
 
     // Refs for layers
     const darkLayerRef = useRef(null)
@@ -51,12 +52,107 @@ export default function Events() {
         return () => subscription.unsubscribe()
     }, [setTransition])
 
+    // Helper function to calculate event category based on date and time
+    function getEventCategory(event) {
+        const now = new Date()
+        
+        if (!event.date) return 'upcoming' // No date set, default to upcoming
+        
+        const eventDate = new Date(event.date)
+        
+        // Parse start and end times
+        const startTime = event.start_time ? parseTime(event.start_time) : null
+        const endTime = event.end_time ? parseTime(event.end_time) : null
+        
+        // Create full datetime for event start
+        let eventStart = new Date(eventDate)
+        if (startTime) {
+            eventStart.setHours(startTime.hours, startTime.minutes, 0, 0)
+        } else {
+            eventStart.setHours(0, 0, 0, 0) // Start of day if no time specified
+        }
+        
+        // Create full datetime for event end
+        let eventEnd = new Date(eventDate)
+        if (endTime) {
+            eventEnd.setHours(endTime.hours, endTime.minutes, 0, 0)
+        } else if (startTime) {
+            // If only start time, assume event lasts 2 hours
+            eventEnd.setHours(startTime.hours + 2, startTime.minutes, 0, 0)
+        } else {
+            eventEnd.setHours(23, 59, 59, 999) // End of day if no time specified
+        }
+        
+        // Determine category
+        if (now < eventStart) {
+            return 'upcoming'
+        } else if (now >= eventStart && now <= eventEnd) {
+            return 'current'
+        } else {
+            return 'past'
+        }
+    }
+    
+    // Helper to parse time string like "09:00 AM" or "14:30"
+    function parseTime(timeStr) {
+        if (!timeStr) return null
+        
+        // Try parsing "HH:MM AM/PM" format
+        const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+        if (ampmMatch) {
+            let hours = parseInt(ampmMatch[1])
+            const minutes = parseInt(ampmMatch[2])
+            const period = ampmMatch[3].toUpperCase()
+            
+            if (period === 'PM' && hours !== 12) hours += 12
+            if (period === 'AM' && hours === 12) hours = 0
+            
+            return { hours, minutes }
+        }
+        
+        // Try parsing "HH:MM" 24-hour format
+        const match24 = timeStr.match(/(\d{1,2}):(\d{2})/)
+        if (match24) {
+            return { hours: parseInt(match24[1]), minutes: parseInt(match24[2]) }
+        }
+        
+        return null
+    }
+
+    // Compute events with dynamic categories
+    const eventsWithCategories = events.map(event => ({
+        ...event,
+        category: getEventCategory(event),
+        currentRegistrations: eventRegistrationCounts[event.id] || 0
+    }))
+
     async function fetchEvents() {
         const { data } = await supabase
             .from('events')
             .select('*')
             .order('date', { ascending: true })
-        if (data) setEvents(data)
+        if (data) {
+            setEvents(data)
+            // Fetch registration counts for all events
+            fetchAllRegistrationCounts(data.map(e => e.id))
+        }
+    }
+
+    async function fetchAllRegistrationCounts(eventIds) {
+        if (!eventIds.length) return
+        
+        const { data, error } = await supabase
+            .from('registrations')
+            .select('event_id')
+        
+        if (data && !error) {
+            // Count registrations per event
+            const counts = {}
+            data.forEach(reg => {
+                counts[reg.event_id] = (counts[reg.event_id] || 0) + 1
+            })
+            setEventRegistrationCounts(counts)
+        }
     }
 
     async function fetchRegistrations(userId) {
@@ -110,6 +206,15 @@ export default function Events() {
             return
         }
 
+        // Check max registrations limit
+        if (event.max_registrations) {
+            const currentCount = eventRegistrationCounts[event.id] || 0
+            if (currentCount >= event.max_registrations) {
+                alert('Sorry, this event has reached its maximum registration limit.')
+                return
+            }
+        }
+
         // Sanitize user input to prevent injection attacks
         const sanitize = (str) => {
             if (!str) return str
@@ -131,6 +236,11 @@ export default function Events() {
         } else {
             alert('Successfully registered!')
             setRegistrations([...registrations, event.id])
+            // Update local registration count
+            setEventRegistrationCounts(prev => ({
+                ...prev,
+                [event.id]: (prev[event.id] || 0) + 1
+            }))
         }
     }
 
@@ -226,7 +336,7 @@ export default function Events() {
                         setActiveTab={setActiveTab}
                         goBack={goBack}
                         toggleTheme={toggleTheme}
-                        events={events}
+                        events={eventsWithCategories}
                         user={user}
                         registrations={registrations}
                         onRegister={handleRegister}
@@ -252,7 +362,7 @@ export default function Events() {
                         setActiveTab={setActiveTab}
                         goBack={goBack}
                         toggleTheme={toggleTheme}
-                        events={events}
+                        events={eventsWithCategories}
                         user={user}
                         registrations={registrations}
                         onRegister={handleRegister}
