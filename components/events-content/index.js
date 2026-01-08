@@ -108,17 +108,17 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 // PAST EVENTS LAYOUT (VERTICAL SIMPLE)
                                 if (activeTab === 'past') {
                                     return (
-                                        <div key={event.id} className={s.card} style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                                            <div className={s['card-image']} style={{ width: '100%', height: '300px' }}>
+                                        <div key={event.id} className={s.card} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <div className={s['card-image']} style={{ width: '100%', aspectRatio: '2/3' }}>
                                                 {event.image_url ? (
-                                                    <img src={event.image_url} alt={event.title} style={{ objectFit: 'cover' }} />
+                                                    <img src={event.image_url} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
                                                     <div className={s['no-image']}>CIS Event</div>
                                                 )}
                                             </div>
-                                            <div className={s['card-content']} style={{ padding: '1rem', width: '100%' }}>
-                                                <h3 className={s['card-title']} style={{ marginBottom: '0.5rem' }}>{event.title}</h3>
-                                                <span className={s.date} style={{ fontSize: '0.9rem', color: '#888' }}>
+                                            <div className={s['card-content']} style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                                                <h3 className={s['card-title']} style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{event.title}</h3>
+                                                <span className={s.date} style={{ fontSize: '0.8rem', color: '#888' }}>
                                                     {event.date ? new Date(event.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}
                                                 </span>
                                             </div>
