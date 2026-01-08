@@ -2,6 +2,7 @@ import s from '../../pages/events/events.module.scss'
 import { useState, useEffect } from 'react'
 import cn from 'clsx'
 import dynamic from 'next/dynamic'
+import { useStore } from 'lib/store'
 
 const Sun = dynamic(() => import('icons/sun.svg'), { ssr: false })
 const Moon = dynamic(() => import('icons/moon.svg'), { ssr: false })
@@ -9,6 +10,8 @@ const Arrow = dynamic(() => import('icons/arrow-buttons.svg'), { ssr: false })
 const Logout = dynamic(() => import('icons/logout.svg'), { ssr: false })
 
 export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActiveTab, events = [], user, registrations = [], onRegister, onLogin, onLogout }) => {
+
+    const lenis = useStore(({ lenis }) => lenis)
 
     const tabs = [
         { id: 'upcoming', label: 'Upcoming' },
@@ -19,6 +22,28 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
     const [notification, setNotification] = useState(null)
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [showLoginModal, setShowLoginModal] = useState(false)
+    const [selectedEvent, setSelectedEvent] = useState(null)
+
+    // Lock body scroll and stop Lenis when modal is open
+    useEffect(() => {
+        if (selectedEvent) {
+            document.body.style.overflow = 'hidden'
+            document.documentElement.style.overflow = 'hidden'
+            document.documentElement.classList.add('lenis-stopped')
+            lenis?.stop()
+        } else {
+            document.body.style.overflow = ''
+            document.documentElement.style.overflow = ''
+            document.documentElement.classList.remove('lenis-stopped')
+            lenis?.start()
+        }
+        return () => {
+            document.body.style.overflow = ''
+            document.documentElement.style.overflow = ''
+            document.documentElement.classList.remove('lenis-stopped')
+            lenis?.start()
+        }
+    }, [selectedEvent, lenis])
 
     const handleLogoutClick = () => {
         setShowLogoutModal(true)
@@ -31,7 +56,13 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
         setTimeout(() => setNotification(null), 2000)
     }
 
-    const filteredEvents = events.filter(e => e.category === activeTab)
+    const filteredEvents = events
+        .filter(e => e.category === activeTab)
+        .sort((a, b) => {
+            const dateA = new Date(a.date || 0)
+            const dateB = new Date(b.date || 0)
+            return activeTab === 'past' ? dateB - dateA : dateA - dateB
+        })
 
     return (
         <div className={cn(s.events, theme === 'dark' && s.dark)} style={{ minHeight: '100vh', paddingTop: '60px' }}>
@@ -113,8 +144,18 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
                                 // PAST EVENTS LAYOUT (VERTICAL SIMPLE)
                                 if (activeTab === 'past') {
+                                    const hasDescription = !!event.description;
                                     return (
-                                        <div key={event.id} className={s.card} style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <div 
+                                            key={event.id} 
+                                            className={s.card} 
+                                            style={{ 
+                                                display: 'flex', 
+                                                flexDirection: 'column',
+                                                cursor: hasDescription ? 'pointer' : 'default'
+                                            }}
+                                            onClick={() => hasDescription && setSelectedEvent(event)}
+                                        >
                                             <div className={s['card-image']} style={{ width: '100%', aspectRatio: '2/3' }}>
                                                 {event.image_url ? (
                                                     <img src={event.image_url} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -133,8 +174,22 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 }
 
                                 // UPCOMING / CURRENT EVENTS LAYOUT (HORIZONTAL: POSTER LEFT, CONTENT RIGHT)
+                                const hasDescription = !!event.description;
                                 return (
-                                    <div key={event.id} className={s.card} style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem', height: 'auto', alignItems: 'start', padding: '1rem' }}>
+                                    <div 
+                                        key={event.id} 
+                                        className={s.card} 
+                                        style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: '300px 1fr', 
+                                            gap: '2rem', 
+                                            height: 'auto', 
+                                            alignItems: 'start', 
+                                            padding: '1rem',
+                                            cursor: hasDescription ? 'pointer' : 'default'
+                                        }}
+                                        onClick={() => hasDescription && setSelectedEvent(event)}
+                                    >
                                         {/* LEFT: VERTICAL POSTER */}
                                         <div className={s['card-image']} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
                                             {event.image_url ? (
@@ -188,13 +243,14 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                     activeTab !== 'past' && event.registration_status !== 'closed' && (
                                                         <div className={s.actions}>
                                                             {event.registration_link ? (
-                                                                <a href={event.registration_link} target="_blank" rel="noopener noreferrer" className={s.btn} style={{ fontSize: '1.1rem', padding: '12px 24px' }}>
+                                                                <a href={event.registration_link} target="_blank" rel="noopener noreferrer" className={s.btn} style={{ fontSize: '1.1rem', padding: '12px 24px' }} onClick={(e) => e.stopPropagation()}>
                                                                     Register Now ↗
                                                                 </a>
                                                             ) : (
                                                                 <button
                                                                     className={cn(s.btn, isRegistered && s.registered)}
-                                                                    onClick={() => {
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
                                                                         if (!isRegistered) {
                                                                             if (!user) {
                                                                                 setShowLoginModal(true)
@@ -368,6 +424,37 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                             >
                                 Login
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Event Description Modal */}
+            {selectedEvent && (
+                <div 
+                    className={s.modalOverlay}
+                    onClick={() => setSelectedEvent(null)}
+                >
+                    <div 
+                        className={s.modalContent} 
+                        onClick={(e) => e.stopPropagation()}
+                        data-lenis-prevent
+                    >
+                        <button 
+                            className={s.closeBtn}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEvent(null);
+                            }}
+                            aria-label="Close"
+                        >
+                            ✕
+                        </button>
+                        
+                        <h3 style={{ margin: 0, fontSize: '2rem', width: '90%' }}>{selectedEvent.title}</h3>
+                        
+                        <div style={{ fontSize: '1.1rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', width: '100%' }}>
+                            {selectedEvent.description}
                         </div>
                     </div>
                 </div>

@@ -124,12 +124,59 @@ svg.icon {
     margin: 0 !important;
   }
 
+  // Select dropdown styles for month/year (dropdownMode="select")
+  &__month-select,
+  &__year-select {
+    background-color: rgba(30, 30, 30, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    color: #fff !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.5rem center !important;
+    background-size: 1rem !important;
+    padding-right: 2rem !important;
+    min-width: 100px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    &:hover {
+      background-color: rgba(50, 50, 50, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    &:focus {
+      outline: none !important;
+      border-color: rgba(255, 255, 255, 0.3) !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+    }
+
+    option {
+      background-color: #1e1e1e !important;
+      color: #fff !important;
+      padding: 0.5rem !important;
+    }
+  }
+
   // Dropdown trigger buttons (the clickable month/year display)
   &__month-read-view,
   &__year-read-view {
     visibility: visible !important;
-    background-color: #2a2a2a !important;
-    border: 1px solid #3a3a3a !important;
+    background-color: rgba(30, 30, 30, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 0.5rem !important;
     padding: 0.4rem 0.75rem !important;
     color: #fff !important;
@@ -138,8 +185,8 @@ svg.icon {
     transition: all 0.2s !important;
 
     &:hover {
-      background-color: #333 !important;
-      border-color: #444 !important;
+      background-color: rgba(50, 50, 50, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
     }
 
     &--selected-month,

@@ -39,7 +39,8 @@ export default function AdminDashboard() {
         registration_status: 'open',
         venue: '',
         event_time: '',
-        registration_open_time: null
+        registration_open_time: null,
+        max_registrations: ''
     })
     const [imageFile, setImageFile] = useState(null)
     const [isEditing, setIsEditing] = useState(false)
@@ -88,7 +89,8 @@ export default function AdminDashboard() {
                 registration_status: event.registration_status || 'open',
                 venue: event.venue || '',
                 event_time: event.event_time || '',
-                registration_open_time: event.registration_open_time ? new Date(event.registration_open_time) : null
+                registration_open_time: event.registration_open_time ? new Date(event.registration_open_time) : null,
+                max_registrations: event.max_registrations || ''
             })
             setIsEditing(true)
             setEditId(event.id)
@@ -100,12 +102,11 @@ export default function AdminDashboard() {
                 date: new Date(),
                 image_url: '',
                 registration_link: '',
-                image_url: '',
-                registration_link: '',
                 registration_status: 'open',
                 venue: '',
                 event_time: '',
-                registration_open_time: null
+                registration_open_time: null,
+                max_registrations: ''
             })
             setIsEditing(false)
             setEditId(null)
@@ -249,7 +250,8 @@ export default function AdminDashboard() {
             registration_status: calculatedRegStatus,
             venue: sanitizeInput(formData.venue),
             event_time: sanitizeInput(formData.event_time),
-            registration_open_time: formData.registration_open_time
+            registration_open_time: formData.registration_open_time,
+            max_registrations: formData.max_registrations ? parseInt(formData.max_registrations) : null
         }
 
         let error
@@ -428,6 +430,24 @@ export default function AdminDashboard() {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className={s.inputGroup}>
+                                <label>Max Registrations (Optional)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.max_registrations}
+                                    onChange={e => setFormData({ ...formData, max_registrations: e.target.value })}
+                                    placeholder="Leave empty for unlimited"
+                                    style={{ 
+                                        padding: '0.8rem', 
+                                        background: '#333', 
+                                        color: 'white', 
+                                        border: '1px solid #444', 
+                                        borderRadius: '4px' 
+                                    }}
+                                />
                             </div>
 
                             <div className={s.inputGroup}>
