@@ -360,7 +360,7 @@ export default function Home() {
           <div className={s.highlight} data-lenis-scroll-snap-align="start">
             <Parallax speed={-0.5}>
               <p className="h2">
-                <AppearTitle>Why u Should Join CIS</AppearTitle>
+                <AppearTitle>Why you Should Join CIS</AppearTitle>
               </p>
             </Parallax>
           </div>
