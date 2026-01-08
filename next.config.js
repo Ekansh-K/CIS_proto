@@ -41,6 +41,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'lenisub.blob.core.windows.net',
       },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'payndlhzqheoqwevzzjd.supabase.co',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },

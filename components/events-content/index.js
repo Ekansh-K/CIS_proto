@@ -2,6 +2,7 @@ import s from '../../pages/events/events.module.scss'
 import { useState, useEffect } from 'react'
 import cn from 'clsx'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { useStore } from 'lib/store'
 
 const Sun = dynamic(() => import('icons/sun.svg'), { ssr: false })
@@ -65,7 +66,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
         })
 
     return (
-        <div className={cn(s.events, theme === 'dark' && s.dark)} style={{ minHeight: '100vh', paddingTop: '60px' }}>
+        <div className={cn(s.events, theme === 'dark' && s.dark)}>
             <div className={s.inner}>
                 <div className={s['header-row']}>
                     <div className={s.left}>
@@ -77,16 +78,16 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                         </div>
                     </div>
 
-                    <div className={s.right} style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                    <div className={s.right}>
 
                         {
                             user ? (
                                 <>
-                                    <div className={s.userProfile} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                        <span style={{ fontWeight: 'bold', fontSize: '1.25rem', lineHeight: '1.2' }}>
+                                    <div className={s.userProfile}>
+                                        <span className={s.userName}>
                                             {user.user_metadata?.full_name || user.user_metadata?.name || 'User'}
                                         </span>
-                                        <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>
+                                        <span className={s.userEmail}>
                                             {user.email}
                                         </span>
                                     </div>
@@ -95,7 +96,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                         aria-label="Logout"
                                         className={s['logout-btn']}
                                     >
-                                        <Logout style={{ width: '24px', height: '24px' }} />
+                                        <Logout />
                                     </button>
                                 </>
                             ) : (
@@ -109,10 +110,13 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                     </div>
                 </div>
 
-                <div className={s.tabs}>
+                <div className={s.tabs} role="tablist" aria-label="Event categories">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
+                            role="tab"
+                            aria-selected={activeTab === tab.id}
+                            aria-controls={`tabpanel-${tab.id}`}
                             className={cn(activeTab === tab.id && s.active)}
                             onClick={() => setActiveTab(tab.id)}
                         >
@@ -121,7 +125,12 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                     ))}
                 </div>
 
-                <div className={s.content}>
+                <div 
+                    className={s.content}
+                    role="tabpanel"
+                    id={`tabpanel-${activeTab}`}
+                    aria-labelledby={activeTab}
+                >
                     {filteredEvents.length === 0 ? (
                         <div className={s.placeholder}>
                             {activeTab === 'upcoming' && 'No upcoming events scheduled yet.'}
@@ -129,7 +138,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                             {activeTab === 'past' && 'Archive of past events will appear here.'}
                         </div>
                     ) : (
-                        <div className={activeTab === 'past' ? s.grid : undefined} style={activeTab !== 'past' ? { display: 'flex', flexDirection: 'column', gap: '40px' } : undefined}>
+                        <div className={activeTab === 'past' ? s.grid : s.eventsListColumn}>
                             {filteredEvents.map(event => {
                                 const isRegistered = registrations.includes(event.id)
                                 const now = new Date()
@@ -142,30 +151,44 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                     displayStatus = 'on-hold';
                                 }
 
+                                const hasDescription = !!event.description;
+
+                                // Handler for keyboard accessibility
+                                const handleCardKeyDown = (e) => {
+                                    if (hasDescription && (e.key === 'Enter' || e.key === ' ')) {
+                                        e.preventDefault();
+                                        setSelectedEvent(event);
+                                    }
+                                };
+
                                 // PAST EVENTS LAYOUT (VERTICAL SIMPLE)
                                 if (activeTab === 'past') {
-                                    const hasDescription = !!event.description;
                                     return (
                                         <div 
                                             key={event.id} 
-                                            className={s.card} 
-                                            style={{ 
-                                                display: 'flex', 
-                                                flexDirection: 'column',
-                                                cursor: hasDescription ? 'pointer' : 'default'
-                                            }}
+                                            className={cn(s.card, s.cardVertical, hasDescription && s.cardClickable)}
                                             onClick={() => hasDescription && setSelectedEvent(event)}
+                                            onKeyDown={handleCardKeyDown}
+                                            tabIndex={hasDescription ? 0 : undefined}
+                                            role={hasDescription ? 'button' : undefined}
+                                            aria-label={hasDescription ? `View details for ${event.title}` : undefined}
                                         >
-                                            <div className={s['card-image']} style={{ width: '100%', aspectRatio: '2/3' }}>
+                                            <div className={cn(s['card-image'], s.cardImagePastEvent)}>
                                                 {event.image_url ? (
-                                                    <img src={event.image_url} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <Image 
+                                                        src={event.image_url} 
+                                                        alt={event.title}
+                                                        fill
+                                                        sizes="(max-width: 800px) 50vw, 300px"
+                                                        style={{ objectFit: 'cover' }}
+                                                    />
                                                 ) : (
                                                     <div className={s['no-image']}>CIS Event</div>
                                                 )}
                                             </div>
-                                            <div className={s['card-content']} style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                                                <h3 className={s['card-title']} style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{event.title}</h3>
-                                                <span className={s.date} style={{ fontSize: '0.8rem', color: '#888' }}>
+                                            <div className={s['card-content']}>
+                                                <h3 className={s['card-title']}>{event.title}</h3>
+                                                <span className={s.date}>
                                                     {event.date ? new Date(event.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}
                                                 </span>
                                             </div>
@@ -174,81 +197,94 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 }
 
                                 // UPCOMING / CURRENT EVENTS LAYOUT (HORIZONTAL: POSTER LEFT, CONTENT RIGHT)
-                                const hasDescription = !!event.description;
                                 return (
                                     <div 
                                         key={event.id} 
-                                        className={s.card} 
-                                        style={{ 
-                                            display: 'grid', 
-                                            gridTemplateColumns: '300px 1fr', 
-                                            gap: '2rem', 
-                                            height: 'auto', 
-                                            alignItems: 'start', 
-                                            padding: '1rem',
-                                            cursor: hasDescription ? 'pointer' : 'default'
-                                        }}
+                                        className={cn(s.card, s.cardHorizontal, hasDescription && s.cardClickable)}
                                         onClick={() => hasDescription && setSelectedEvent(event)}
+                                        onKeyDown={handleCardKeyDown}
+                                        tabIndex={hasDescription ? 0 : undefined}
+                                        role={hasDescription ? 'button' : undefined}
+                                        aria-label={hasDescription ? `View details for ${event.title}` : undefined}
                                     >
                                         {/* LEFT: VERTICAL POSTER */}
-                                        <div className={s['card-image']} style={{ width: '100%', aspectRatio: '2/3', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
+                                        <div className={cn(s['card-image'], s.cardImagePoster)}>
                                             {event.image_url ? (
-                                                <img src={event.image_url} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                <Image 
+                                                    src={event.image_url} 
+                                                    alt={event.title}
+                                                    fill
+                                                    sizes="(max-width: 800px) 100vw, 300px"
+                                                    style={{ objectFit: 'contain' }}
+                                                    priority={filteredEvents.indexOf(event) < 2}
+                                                />
                                             ) : (
                                                 <div className={s['no-image']}>CIS Event</div>
                                             )}
                                         </div>
 
                                         {/* RIGHT: DETAILS */}
-                                        <div className={s['card-content']} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0' }}>
+                                        <div className={cn(s['card-content'], s.cardContentHorizontal)}>
                                             <div>
-                                                <h3 className={s['card-title']} style={{ fontSize: '2.5rem', marginBottom: '0.5rem', lineHeight: '1.1' }}>{event.title}</h3>
+                                                <h3 className={cn(s['card-title'], s.cardTitleLarge)}>{event.title}</h3>
                                             </div>
 
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 2rem', fontSize: '1.1rem', color: theme === 'dark' ? '#ccc' : 'black' }}>
-                                                <span style={{ fontWeight: 'bold' }}>Date :</span>
+                                            <div className={s.eventDetails} style={{ color: theme === 'dark' ? '#ccc' : 'black' }}>
+                                                <span className={s.detailLabel}>Date :</span>
                                                 <span>{event.date ? new Date(event.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}</span>
 
                                                 {event.event_time && (
                                                     <>
-                                                        <span style={{ fontWeight: 'bold' }}>Time :</span>
+                                                        <span className={s.detailLabel}>Time :</span>
                                                         <span>{event.event_time}</span>
                                                     </>
                                                 )}
 
                                                 {event.venue && (
                                                     <>
-                                                        <span style={{ fontWeight: 'bold', marginTop: '1rem' }}>Venue</span>
-                                                        <span style={{ marginTop: '1rem' }}>{event.venue}</span>
+                                                        <span className={s.detailLabelWithMargin}>Venue</span>
+                                                        <span className={s.detailValueWithMargin}>{event.venue}</span>
                                                     </>
                                                 )}
 
-                                                <span style={{ fontWeight: 'bold', marginTop: '1rem' }}>Registration</span>
-                                                <span style={{ 
-                                                    marginTop: '1rem', 
-                                                    textTransform: 'capitalize', 
-                                                    color: displayStatus === 'open' ? '#4caf50' : displayStatus === 'on-hold' ? '#ebc034' : '#f44336' 
-                                                }}>
+                                                <span className={s.detailLabelWithMargin}>Registration</span>
+                                                <span className={cn(
+                                                    s.detailValueWithMargin,
+                                                    displayStatus === 'open' && s.statusOpen,
+                                                    displayStatus === 'on-hold' && s.statusOnHold,
+                                                    displayStatus === 'closed' && s.statusClosed
+                                                )}>
                                                     {displayStatus}
+                                                    <span className="sr-only">
+                                                        {displayStatus === 'open' && ' - Registration is currently open'}
+                                                        {displayStatus === 'on-hold' && ' - Registration opens soon'}
+                                                        {displayStatus === 'closed' && ' - Registration is closed'}
+                                                    </span>
                                                 </span>
                                             </div>
 
                                             {/* COUNTDOWN / REGISTRATION */}
-                                            <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
-                                                {!isRegistrationOpen && opensAt ? (
-                                                    <div style={{ color: '#ebc034', fontWeight: 'bold', fontSize: '1.2rem', padding: '1rem', border: '1px solid #ebc034', borderRadius: '8px', display: 'inline-block' }}>
-                                                        Opens in: <Countdown targetDate={opensAt} />
-                                                    </div>
-                                                ) : (
-                                                    activeTab !== 'past' && event.registration_status !== 'closed' && (
+                                            {!isRegistrationOpen && opensAt ? (
+                                                <div className={s.countdownBox}>
+                                                    Opens in: <Countdown targetDate={opensAt} />
+                                                </div>
+                                            ) : (
+                                                activeTab !== 'past' && event.registration_status !== 'closed' && (
+                                                    <div className={s.actionsWrapper}>
                                                         <div className={s.actions}>
                                                             {event.registration_link ? (
-                                                                <a href={event.registration_link} target="_blank" rel="noopener noreferrer" className={s.btn} style={{ fontSize: '1.1rem', padding: '12px 24px' }} onClick={(e) => e.stopPropagation()}>
+                                                                <a 
+                                                                    href={event.registration_link} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer" 
+                                                                    className={cn(s.btn, s.btnLarge)} 
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
                                                                     Register Now ↗
                                                                 </a>
                                                             ) : (
                                                                 <button
-                                                                    className={cn(s.btn, isRegistered && s.registered)}
+                                                                    className={cn(s.btn, s.btnLarge, isRegistered && s.registered)}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation()
                                                                         if (!isRegistered) {
@@ -260,15 +296,14 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                                         }
                                                                     }}
                                                                     disabled={isRegistered}
-                                                                    style={{ fontSize: '1.1rem', padding: '12px 24px' }}
                                                                 >
                                                                     {isRegistered ? 'Registered ✓' : 'Register'}
                                                                 </button>
                                                             )}
                                                         </div>
-                                                    )
-                                                )}
-                                            </div>
+                                                    </div>
+                                                )
+                                            )}
                                         </div>
                                     </div>
                                 )
@@ -278,71 +313,26 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                 </div>
             </div>
             {showLogoutModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    backdropFilter: 'blur(5px)',
-                    zIndex: 10000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <div style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        padding: '40px',
-                        borderRadius: '24px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '24px',
-                        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-                        minWidth: '320px'
-                    }}>
-                        <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>Logout?</h3>
-                        <p style={{ margin: 0, textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>Are you sure you want to exit?</p>
+                <div 
+                    className={s.logoutModal}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="logout-modal-title"
+                >
+                    <div className={s.logoutModalContent}>
+                        <h3 id="logout-modal-title">Logout?</h3>
+                        <p>Are you sure you want to exit?</p>
 
-                        <div style={{ display: 'flex', gap: '16px', width: '100%', marginTop: '10px' }}>
+                        <div className={s.modalButtonGroup}>
                             <button
                                 onClick={() => setShowLogoutModal(false)}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                    background: 'transparent',
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                                onMouseLeave={e => e.target.style.background = 'transparent'}
+                                className={s.modalBtnCancel}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmLogout}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px',
-                                    borderRadius: '12px',
-                                    border: 'none',
-                                    background: '#fff',
-                                    color: '#000',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    fontWeight: 'bold',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.target.style.transform = 'scale(1.02)'}
-                                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                className={s.modalBtnConfirm}
                             >
                                 Yes, Logout
                             </button>
@@ -353,52 +343,20 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
             {/* Login Modal */}
             {showLoginModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    backdropFilter: 'blur(5px)',
-                    zIndex: 10000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <div style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        padding: '40px',
-                        borderRadius: '24px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '24px',
-                        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-                        minWidth: '320px'
-                    }}>
-                        <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>Login Required</h3>
-                        <p style={{ margin: 0, textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>You must be logged in to register for events.</p>
+                <div 
+                    className={s.loginModal}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="login-modal-title"
+                >
+                    <div className={s.loginModalContent}>
+                        <h3 id="login-modal-title">Login Required</h3>
+                        <p>You must be logged in to register for events.</p>
 
-                        <div style={{ display: 'flex', gap: '16px', width: '100%', marginTop: '10px' }}>
+                        <div className={s.modalButtonGroup}>
                             <button
                                 onClick={() => setShowLoginModal(false)}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                    background: 'transparent',
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                                onMouseLeave={e => e.target.style.background = 'transparent'}
+                                className={s.modalBtnCancel}
                             >
                                 Cancel
                             </button>
@@ -407,20 +365,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                     setShowLoginModal(false)
                                     onLogin()
                                 }}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px',
-                                    borderRadius: '12px',
-                                    border: 'none',
-                                    background: '#fff',
-                                    color: '#000',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    fontWeight: 'bold',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.target.style.transform = 'scale(1.02)'}
-                                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                className={s.modalBtnConfirm}
                             >
                                 Login
                             </button>
@@ -434,6 +379,9 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                 <div 
                     className={s.modalOverlay}
                     onClick={() => setSelectedEvent(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="event-modal-title"
                 >
                     <div 
                         className={s.modalContent} 
@@ -446,14 +394,14 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 e.stopPropagation();
                                 setSelectedEvent(null);
                             }}
-                            aria-label="Close"
+                            aria-label="Close modal"
                         >
-                            ✕
+                            <span aria-hidden="true">✕</span>
                         </button>
                         
-                        <h3 style={{ margin: 0, fontSize: '2rem', width: '90%' }}>{selectedEvent.title}</h3>
+                        <h3 id="event-modal-title" className={s.modalTitle}>{selectedEvent.title}</h3>
                         
-                        <div style={{ fontSize: '1.1rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', width: '100%' }}>
+                        <div className={s.modalDescription}>
                             {selectedEvent.description}
                         </div>
                     </div>
@@ -461,25 +409,8 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
             )}
 
             {notification && (
-                <div style={{
-                    position: 'fixed',
-                    top: '20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(0,0,0,0.85)',
-                    color: 'white',
-                    padding: '12px 24px',
-                    borderRadius: '50px',
-                    zIndex: 9999,
-                    fontSize: '1rem',
-                    pointerEvents: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                    <Logout style={{ width: '20px', height: '20px' }} /> {notification}
+                <div className={s.notification} role="status" aria-live="polite">
+                    <Logout aria-hidden="true" /> {notification}
                 </div>
             )}
         </div >
