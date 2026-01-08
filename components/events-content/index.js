@@ -233,10 +233,15 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                 <span className={s.detailLabel}>Date :</span>
                                                 <span>{event.date ? new Date(event.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}</span>
 
-                                                {event.event_time && (
+                                                {(event.start_time || event.end_time) && (
                                                     <>
                                                         <span className={s.detailLabel}>Time :</span>
-                                                        <span>{event.event_time}</span>
+                                                        <span>
+                                                            {event.start_time && event.end_time 
+                                                                ? `${event.start_time} - ${event.end_time}`
+                                                                : event.start_time || event.end_time
+                                                            }
+                                                        </span>
                                                     </>
                                                 )}
 

@@ -38,7 +38,8 @@ export default function AdminDashboard() {
         registration_link: '',
         registration_status: 'open',
         venue: '',
-        event_time: '',
+        start_time: '',
+        end_time: '',
         registration_open_time: null,
         max_registrations: ''
     })
@@ -88,7 +89,8 @@ export default function AdminDashboard() {
                 registration_link: event.registration_link || '',
                 registration_status: event.registration_status || 'open',
                 venue: event.venue || '',
-                event_time: event.event_time || '',
+                start_time: event.start_time || '',
+                end_time: event.end_time || '',
                 registration_open_time: event.registration_open_time ? new Date(event.registration_open_time) : null,
                 max_registrations: event.max_registrations || ''
             })
@@ -104,7 +106,8 @@ export default function AdminDashboard() {
                 registration_link: '',
                 registration_status: 'open',
                 venue: '',
-                event_time: '',
+                start_time: '',
+                end_time: '',
                 registration_open_time: null,
                 max_registrations: ''
             })
@@ -215,16 +218,34 @@ export default function AdminDashboard() {
 
         // --- Auto Classification Logic ---
         const now = new Date();
-        const eventDate = new Date(formData.date);
         
-        // Calculate Category
-        // Reset time to compare dates only for category
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const eDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+        // Parse start_time and end_time to create full datetime objects
+        let eventStart = new Date(formData.date);
+        let eventEnd = new Date(formData.date);
         
+        if (formData.start_time) {
+            const [startHours, startMins] = formData.start_time.split(':');
+            eventStart.setHours(parseInt(startHours), parseInt(startMins), 0, 0);
+        } else {
+            eventStart.setHours(0, 0, 0, 0);
+        }
+        
+        if (formData.end_time) {
+            const [endHours, endMins] = formData.end_time.split(':');
+            eventEnd.setHours(parseInt(endHours), parseInt(endMins), 0, 0);
+        } else {
+            eventEnd.setHours(23, 59, 59, 999);
+        }
+        
+        // Calculate Category based on start and end times
         let calculatedCategory = 'upcoming';
-        if (eDate < today) calculatedCategory = 'past';
-        else if (eDate.getTime() === today.getTime()) calculatedCategory = 'current';
+        if (now < eventStart) {
+            calculatedCategory = 'upcoming';
+        } else if (now >= eventStart && now <= eventEnd) {
+            calculatedCategory = 'current';
+        } else if (now > eventEnd) {
+            calculatedCategory = 'past';
+        }
 
         // Calculate Registration Status
         let calculatedRegStatus = 'open'; // Default
@@ -249,7 +270,8 @@ export default function AdminDashboard() {
             registration_link: formData.registration_link,
             registration_status: calculatedRegStatus,
             venue: sanitizeInput(formData.venue),
-            event_time: sanitizeInput(formData.event_time),
+            start_time: sanitizeInput(formData.start_time),
+            end_time: sanitizeInput(formData.end_time),
             registration_open_time: formData.registration_open_time,
             max_registrations: formData.max_registrations ? parseInt(formData.max_registrations) : null
         }
@@ -360,12 +382,25 @@ export default function AdminDashboard() {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem' }}>
                                 <div className={s.inputGroup} style={{ flex: 1 }}>
-                                    <label>Event Time</label>
+                                    <label>Start Time</label>
                                     <input
                                         type="time"
-                                        value={formData.event_time}
-                                        onChange={e => setFormData({ ...formData, event_time: e.target.value })}
+                                        value={formData.start_time}
+                                        onChange={e => setFormData({ ...formData, start_time: e.target.value })}
+                                        className={s.timeInput}
+                                        style={{ colorScheme: 'dark' }} 
+                                    />
+                                </div>
+                                <div className={s.inputGroup} style={{ flex: 1 }}>
+                                    <label>End Time</label>
+                                    <input
+                                        type="time"
+                                        value={formData.end_time}
+                                        onChange={e => setFormData({ ...formData, end_time: e.target.value })}
                                         className={s.timeInput}
                                         style={{ colorScheme: 'dark' }} 
                                     />
