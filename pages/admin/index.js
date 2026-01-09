@@ -534,12 +534,20 @@ export default function AdminDashboard() {
                             <button
                                 onClick={() => {
                                     if (currentRegistrations.length === 0) return
-                                    const ws = XLSX.utils.json_to_sheet(currentRegistrations.map(r => ({
-                                        Email: r.user_email,
-                                        FullName: r.full_name || '-',
-                                        Date: new Date(r.created_at).toLocaleDateString(),
-                                        Time: new Date(r.created_at).toLocaleTimeString()
-                                    })))
+                                    const ws = XLSX.utils.json_to_sheet(currentRegistrations.map(r => {
+                                        const fullName = r.full_name || '-'
+                                        const match = fullName.match(/^(.+?)\s*-\s*\[?([A-Z0-9.]+)\]?$/)
+                                        const name = match ? match[1].trim() : fullName
+                                        const rollNumber = match ? match[2].trim() : '-'
+                                        
+                                        return {
+                                            Email: r.user_email,
+                                            Name: name,
+                                            'Roll Number': rollNumber,
+                                            Date: new Date(r.created_at).toLocaleDateString(),
+                                            Time: new Date(r.created_at).toLocaleTimeString()
+                                        }
+                                    }))
                                     const wb = XLSX.utils.book_new()
                                     XLSX.utils.book_append_sheet(wb, ws, "Registrations")
                                     XLSX.writeFile(wb, `registrations.xlsx`)
@@ -555,22 +563,31 @@ export default function AdminDashboard() {
                             {currentRegistrations.length === 0 ? (
                                 <p style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>No registrations yet.</p>
                             ) : (
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                                     <thead style={{ background: '#222', position: 'sticky', top: 0, zIndex: 1 }}>
                                         <tr>
                                             <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Email</th>
-                                            <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Full Name</th>
+                                            <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Name</th>
+                                            <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Roll Number</th>
                                             <th style={{ padding: '1rem', borderBottom: '1px solid #444' }}>Registered At</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {currentRegistrations.map((reg, i) => (
-                                            <tr key={reg.id} style={{ borderBottom: '1px solid #333', background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
-                                                <td style={{ padding: '0.8rem 1rem' }}>{reg.user_email}</td>
-                                                <td style={{ padding: '0.8rem 1rem' }}>{reg.full_name || '-'}</td>
-                                                <td style={{ padding: '0.8rem 1rem' }}>{new Date(reg.created_at).toLocaleString()}</td>
-                                            </tr>
-                                        ))}
+                                        {currentRegistrations.map((reg, i) => {
+                                            const fullName = reg.full_name || '-'
+                                            const match = fullName.match(/^(.+?)\s*-\s*\[?([A-Z0-9.]+)\]?$/)
+                                            const name = match ? match[1].trim() : fullName
+                                            const rollNumber = match ? match[2].trim() : '-'
+                                            
+                                            return (
+                                                <tr key={reg.id} style={{ borderBottom: '1px solid #333', background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+                                                    <td style={{ padding: '0.8rem 1rem' }}>{reg.user_email}</td>
+                                                    <td style={{ padding: '0.8rem 1rem' }}>{name}</td>
+                                                    <td style={{ padding: '0.8rem 1rem' }}>{rollNumber}</td>
+                                                    <td style={{ padding: '0.8rem 1rem' }}>{new Date(reg.created_at).toLocaleString()}</td>
+                                                </tr>
+                                            )
+                                        })}
                                     </tbody>
                                 </table>
                             )}

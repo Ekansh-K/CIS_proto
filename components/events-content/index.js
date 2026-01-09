@@ -145,10 +145,20 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 const opensAt = event.registration_open_time ? new Date(event.registration_open_time) : null
                                 const isRegistrationOpen = !opensAt || now >= opensAt
                                 
-                                // Calculate dynamic registration status
+                                // Calculate dynamic registration status based on timing
                                 let displayStatus = event.registration_status;
-                                if (opensAt && now < opensAt && event.registration_status !== 'closed') {
+                                
+                                // If event is in the past, registration should be closed
+                                if (event.category === 'past') {
+                                    displayStatus = 'closed';
+                                }
+                                // If registration hasn't opened yet, show on-hold
+                                else if (opensAt && now < opensAt && event.registration_status !== 'closed') {
                                     displayStatus = 'on-hold';
+                                }
+                                // If event is upcoming or current, respect the database status unless it's past
+                                else if (event.category === 'upcoming' || event.category === 'current') {
+                                    displayStatus = event.registration_status;
                                 }
 
                                 // Check if event is full
