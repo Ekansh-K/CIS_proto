@@ -107,6 +107,16 @@
         }
       }
 
+      .homeIcon {
+        width: mobile-vw(35px);
+        height: mobile-vw(35px);
+
+        @include desktop {
+          width: desktop-vw(35px);
+          height: desktop-vw(35px);
+        }
+      }
+
       @include desktop {
         .link:not(:first-child) {
           margin: 0;

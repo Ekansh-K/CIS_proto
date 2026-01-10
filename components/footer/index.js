@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 
 const Instagram = dynamic(() => import('icons/instagram.svg'), { ssr: false })
 const Gmail = dynamic(() => import('icons/gmail.svg'), { ssr: false })
+const Home = dynamic(() => import('icons/home.svg'), { ssr: false })
 import s from './footer.module.scss'
 
 
@@ -29,6 +30,12 @@ export const Footer = () => {
       </div>
       <div className={s.bottom}>
         <div className={s.links}>
+          <Link
+            className={cn(s.link, 'p-xs')}
+            href="/"
+          >
+            <Home className={cn(s.icon, s.homeIcon)} />
+          </Link>
           <Link
             className={cn(s.link, 'p-xs')}
             href="https://www.instagram.com/ieee_cis_aseb"
