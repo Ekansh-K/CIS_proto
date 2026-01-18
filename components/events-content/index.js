@@ -24,6 +24,10 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [showLoginModal, setShowLoginModal] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
+    // Track events whose registration has just opened (for real-time status updates)
+    const [openedRegistrations, setOpenedRegistrations] = useState({})
+    // Force re-render counter when a countdown completes
+    const [, forceUpdate] = useState(0)
 
     // Lock body scroll and stop Lenis when modal is open
     useEffect(() => {
@@ -125,7 +129,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                     ))}
                 </div>
 
-                <div 
+                <div
                     className={s.content}
                     role="tabpanel"
                     id={`tabpanel-${activeTab}`}
@@ -143,20 +147,26 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 const isRegistered = registrations.includes(event.id)
                                 const now = new Date()
                                 const opensAt = event.registration_open_time ? new Date(event.registration_open_time) : null
-                                const isRegistrationOpen = !opensAt || now >= opensAt
-                                
+                                // Check if registration is open either by time or by countdown completion
+                                const hasOpened = openedRegistrations[event.id] === true
+                                const isRegistrationOpen = !opensAt || now >= opensAt || hasOpened
+
                                 // Calculate dynamic registration status based on timing
                                 let displayStatus = event.registration_status;
-                                
+
                                 // If event is in the past, registration should be closed
                                 if (event.category === 'past') {
                                     displayStatus = 'closed';
                                 }
-                                // If registration hasn't opened yet, show on-hold
-                                else if (opensAt && now < opensAt && event.registration_status !== 'closed') {
+                                // If registration hasn't opened yet (and countdown hasn't completed), show on-hold
+                                else if (opensAt && now < opensAt && !hasOpened && event.registration_status !== 'closed') {
                                     displayStatus = 'on-hold';
                                 }
-                                // If event is upcoming or current, respect the database status unless it's past
+                                // If registration has opened (via countdown or time), show as open (unless DB says closed)
+                                else if ((event.category === 'upcoming' || event.category === 'current') && event.registration_status !== 'closed') {
+                                    displayStatus = isRegistrationOpen ? 'open' : event.registration_status;
+                                }
+                                // If event is upcoming or current, respect the database status
                                 else if (event.category === 'upcoming' || event.category === 'current') {
                                     displayStatus = event.registration_status;
                                 }
@@ -180,8 +190,8 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 // PAST EVENTS LAYOUT (VERTICAL SIMPLE)
                                 if (activeTab === 'past') {
                                     return (
-                                        <div 
-                                            key={event.id} 
+                                        <div
+                                            key={event.id}
                                             className={cn(s.card, s.cardVertical, hasDescription && s.cardClickable)}
                                             onClick={() => hasDescription && setSelectedEvent(event)}
                                             onKeyDown={handleCardKeyDown}
@@ -191,8 +201,8 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                         >
                                             <div className={cn(s['card-image'], s.cardImagePastEvent)}>
                                                 {event.image_url ? (
-                                                    <Image 
-                                                        src={event.image_url} 
+                                                    <Image
+                                                        src={event.image_url}
                                                         alt={event.title}
                                                         fill
                                                         sizes="(max-width: 800px) 50vw, 300px"
@@ -214,8 +224,8 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
                                 // UPCOMING / CURRENT EVENTS LAYOUT (HORIZONTAL: POSTER LEFT, CONTENT RIGHT)
                                 return (
-                                    <div 
-                                        key={event.id} 
+                                    <div
+                                        key={event.id}
                                         className={cn(s.card, s.cardHorizontal, hasDescription && s.cardClickable)}
                                         onClick={() => hasDescription && setSelectedEvent(event)}
                                         onKeyDown={handleCardKeyDown}
@@ -226,8 +236,8 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                         {/* LEFT: VERTICAL POSTER */}
                                         <div className={cn(s['card-image'], s.cardImagePoster)}>
                                             {event.image_url ? (
-                                                <Image 
-                                                    src={event.image_url} 
+                                                <Image
+                                                    src={event.image_url}
                                                     alt={event.title}
                                                     fill
                                                     sizes="(max-width: 800px) 100vw, 300px"
@@ -253,7 +263,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                     <>
                                                         <span className={s.detailLabel}>Time :</span>
                                                         <span>
-                                                            {event.start_time && event.end_time 
+                                                            {event.start_time && event.end_time
                                                                 ? `${event.start_time} - ${event.end_time}`
                                                                 : event.start_time || event.end_time
                                                             }
@@ -290,18 +300,29 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                             {/* COUNTDOWN / REGISTRATION */}
                                             {!isRegistrationOpen && opensAt ? (
                                                 <div className={s.countdownBox}>
-                                                    Opens in: <Countdown targetDate={opensAt} />
+                                                    Opens in: <Countdown
+                                                        targetDate={opensAt}
+                                                        onComplete={() => {
+                                                            // Mark this event's registration as opened
+                                                            setOpenedRegistrations(prev => ({
+                                                                ...prev,
+                                                                [event.id]: true
+                                                            }))
+                                                            // Force re-render to update the UI
+                                                            forceUpdate(n => n + 1)
+                                                        }}
+                                                    />
                                                 </div>
                                             ) : (
                                                 activeTab !== 'past' && event.registration_status !== 'closed' && !isFull && (
                                                     <div className={s.actionsWrapper}>
                                                         <div className={s.actions}>
                                                             {event.registration_link ? (
-                                                                <a 
-                                                                    href={event.registration_link} 
-                                                                    target="_blank" 
-                                                                    rel="noopener noreferrer" 
-                                                                    className={cn(s.btn, s.btnLarge)} 
+                                                                <a
+                                                                    href={event.registration_link}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={cn(s.btn, s.btnLarge)}
                                                                     onClick={(e) => e.stopPropagation()}
                                                                 >
                                                                     Register Now ↗
@@ -337,7 +358,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                 </div>
             </div>
             {showLogoutModal && (
-                <div 
+                <div
                     className={s.logoutModal}
                     role="dialog"
                     aria-modal="true"
@@ -367,7 +388,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
             {/* Login Modal */}
             {showLoginModal && (
-                <div 
+                <div
                     className={s.loginModal}
                     role="dialog"
                     aria-modal="true"
@@ -400,19 +421,19 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
 
             {/* Event Description Modal */}
             {selectedEvent && (
-                <div 
+                <div
                     className={s.modalOverlay}
                     onClick={() => setSelectedEvent(null)}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="event-modal-title"
                 >
-                    <div 
-                        className={s.modalContent} 
+                    <div
+                        className={s.modalContent}
                         onClick={(e) => e.stopPropagation()}
                         data-lenis-prevent
                     >
-                        <button 
+                        <button
                             className={s.closeBtn}
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -422,9 +443,9 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                         >
                             <span aria-hidden="true">✕</span>
                         </button>
-                        
+
                         <h3 id="event-modal-title" className={s.modalTitle}>{selectedEvent.title}</h3>
-                        
+
                         <div className={s.modalDescription}>
                             {selectedEvent.description}
                         </div>
@@ -441,18 +462,21 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
     )
 }
 
-const Countdown = ({ targetDate }) => {
+const Countdown = ({ targetDate, onComplete }) => {
     const [timeLeft, setTimeLeft] = useState('')
 
     useEffect(() => {
-        const interval = setInterval(() => {
+        const calculateTimeLeft = () => {
             const now = new Date()
             const diff = targetDate - now
 
             if (diff <= 0) {
                 setTimeLeft('Now')
-                clearInterval(interval)
-                return
+                // Trigger callback when countdown completes
+                if (onComplete) {
+                    onComplete()
+                }
+                return true // Indicates countdown is complete
             }
 
             const days = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -461,23 +485,24 @@ const Countdown = ({ targetDate }) => {
             const seconds = Math.floor((diff % (1000 * 60)) / 1000)
 
             setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`)
-        }, 1000)
-
-        // Initial set
-        const now = new Date()
-        const diff = targetDate - now
-        if (diff <= 0) {
-            setTimeLeft('Now')
-        } else {
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-            setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`)
+            return false // Countdown still running
         }
 
-        return () => clearInterval(interval)
-    }, [targetDate])
+        // Initial calculation
+        const isComplete = calculateTimeLeft()
+
+        // Only set interval if countdown is not already complete
+        if (!isComplete) {
+            const interval = setInterval(() => {
+                const complete = calculateTimeLeft()
+                if (complete) {
+                    clearInterval(interval)
+                }
+            }, 1000)
+
+            return () => clearInterval(interval)
+        }
+    }, [targetDate, onComplete])
 
     return <span>{timeLeft}</span>
 }

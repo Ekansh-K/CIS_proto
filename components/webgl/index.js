@@ -463,7 +463,15 @@ export function Arm() {
         )
     )
 
-    parent.current.scale.setScalar(viewport.height * _scale)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    const isPortrait = viewport.aspect < 1
+    const multiplier = isMobile && isPortrait ? 0.6 : 1
+
+    // Apply vertical offset for mobile portrait mode (move logo up)
+    const verticalOffset = isMobile && isPortrait ? viewport.height * 0.1 : 0
+    _position.y += verticalOffset
+
+    parent.current.scale.setScalar(viewport.height * _scale * multiplier)
     parent.current.position.copy(_position)
     parent.current.rotation.copy(_rotation)
 
