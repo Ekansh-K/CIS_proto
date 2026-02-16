@@ -1,6 +1,6 @@
 import { Layout } from 'layouts/default'
 import { useStore } from 'lib/store'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import s from './events.module.scss'
 import { useRouter } from 'next/router'
 import { EventsContent } from 'components/events-content'
@@ -23,6 +23,46 @@ export default function Events() {
     const darkLayerRef = useRef(null)
     const lightLayerRef = useRef(null)
     const [isAnimating, setIsAnimating] = useState(false)
+
+    // Ref to hold current event IDs for the real-time subscription callback
+    const eventIdsRef = useRef([])
+
+    // Fetch the actual count for a single event from the database
+    const fetchSingleEventCount = useCallback(async (eventId) => {
+        const { count, error } = await supabase
+            .from('registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', eventId)
+
+        if (!error && count !== null) {
+            setEventRegistrationCounts(prev => ({
+                ...prev,
+                [eventId]: count
+            }))
+        }
+    }, [])
+
+    // Fetch registration counts for all events from the database
+    const fetchAllRegistrationCounts = useCallback(async (eventIds) => {
+        if (!eventIds || !eventIds.length) return
+
+        // Fetch all registrations that match any of our event IDs
+        const { data, error } = await supabase
+            .from('registrations')
+            .select('event_id')
+            .in('event_id', eventIds)
+
+        if (data && !error) {
+            // Build counts object — initialise every event to 0 first
+            // so events with zero registrations also get a count entry
+            const counts = {}
+            eventIds.forEach(id => { counts[id] = 0 })
+            data.forEach(reg => {
+                counts[reg.event_id] = (counts[reg.event_id] || 0) + 1
+            })
+            setEventRegistrationCounts(counts)
+        }
+    }, [])
 
     useEffect(() => {
         // Check if returning from Login (Hash present)
@@ -52,18 +92,43 @@ export default function Events() {
         return () => subscription.unsubscribe()
     }, [setTransition])
 
+    // Real-time subscription for registration changes
+    // This ensures the count updates when ANYONE registers or is removed
+    useEffect(() => {
+        const channel = supabase
+            .channel('registrations-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'registrations' },
+                (payload) => {
+                    console.log('Registration change detected:', payload.eventType)
+                    // When any registration is inserted or deleted, re-fetch the count
+                    // for the affected event
+                    const eventId = payload.new?.event_id || payload.old?.event_id
+                    if (eventId) {
+                        fetchSingleEventCount(eventId)
+                    }
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [fetchSingleEventCount])
+
     // Helper function to calculate event category based on date and time
     function getEventCategory(event) {
         const now = new Date()
-        
+
         if (!event.date) return 'upcoming' // No date set, default to upcoming
-        
+
         const eventDate = new Date(event.date)
-        
+
         // Parse start and end times
         const startTime = event.start_time ? parseTime(event.start_time) : null
         const endTime = event.end_time ? parseTime(event.end_time) : null
-        
+
         // Create full datetime for event start
         let eventStart = new Date(eventDate)
         if (startTime) {
@@ -71,7 +136,7 @@ export default function Events() {
         } else {
             eventStart.setHours(0, 0, 0, 0) // Start of day if no time specified
         }
-        
+
         // Create full datetime for event end
         let eventEnd = new Date(eventDate)
         if (endTime) {
@@ -82,7 +147,7 @@ export default function Events() {
         } else {
             eventEnd.setHours(23, 59, 59, 999) // End of day if no time specified
         }
-        
+
         // Determine category
         if (now < eventStart) {
             return 'upcoming'
@@ -92,30 +157,30 @@ export default function Events() {
             return 'past'
         }
     }
-    
+
     // Helper to parse time string like "09:00 AM" or "14:30"
     function parseTime(timeStr) {
         if (!timeStr) return null
-        
+
         // Try parsing "HH:MM AM/PM" format
         const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
         if (ampmMatch) {
             let hours = parseInt(ampmMatch[1])
             const minutes = parseInt(ampmMatch[2])
             const period = ampmMatch[3].toUpperCase()
-            
+
             if (period === 'PM' && hours !== 12) hours += 12
             if (period === 'AM' && hours === 12) hours = 0
-            
+
             return { hours, minutes }
         }
-        
+
         // Try parsing "HH:MM" 24-hour format
         const match24 = timeStr.match(/(\d{1,2}):(\d{2})/)
         if (match24) {
             return { hours: parseInt(match24[1]), minutes: parseInt(match24[2]) }
         }
-        
+
         return null
     }
 
@@ -123,7 +188,7 @@ export default function Events() {
     const eventsWithCategories = events.map(event => ({
         ...event,
         category: getEventCategory(event),
-        currentRegistrations: eventRegistrationCounts[event.id] || 0
+        currentRegistrations: eventRegistrationCounts[event.id] ?? 0
     }))
 
     async function fetchEvents() {
@@ -133,25 +198,10 @@ export default function Events() {
             .order('date', { ascending: true })
         if (data) {
             setEvents(data)
+            const ids = data.map(e => e.id)
+            eventIdsRef.current = ids
             // Fetch registration counts for all events
-            fetchAllRegistrationCounts(data.map(e => e.id))
-        }
-    }
-
-    async function fetchAllRegistrationCounts(eventIds) {
-        if (!eventIds.length) return
-        
-        const { data, error } = await supabase
-            .from('registrations')
-            .select('event_id')
-        
-        if (data && !error) {
-            // Count registrations per event
-            const counts = {}
-            data.forEach(reg => {
-                counts[reg.event_id] = (counts[reg.event_id] || 0) + 1
-            })
-            setEventRegistrationCounts(counts)
+            fetchAllRegistrationCounts(ids)
         }
     }
 
@@ -206,10 +256,25 @@ export default function Events() {
             return
         }
 
-        // Check max registrations limit
+        // Re-fetch the latest count from DB before checking the limit
+        // This prevents race conditions where the local count is stale
+        let latestCount = eventRegistrationCounts[event.id] || 0
         if (event.max_registrations) {
-            const currentCount = eventRegistrationCounts[event.id] || 0
-            if (currentCount >= event.max_registrations) {
+            const { count, error: countError } = await supabase
+                .from('registrations')
+                .select('*', { count: 'exact', head: true })
+                .eq('event_id', event.id)
+
+            if (!countError && count !== null) {
+                latestCount = count
+                // Also update local state with the fresh count
+                setEventRegistrationCounts(prev => ({
+                    ...prev,
+                    [event.id]: count
+                }))
+            }
+
+            if (latestCount >= event.max_registrations) {
                 alert('Sorry, this event has reached its maximum registration limit.')
                 return
             }
@@ -236,11 +301,9 @@ export default function Events() {
         } else {
             alert('Successfully registered!')
             setRegistrations([...registrations, event.id])
-            // Update local registration count
-            setEventRegistrationCounts(prev => ({
-                ...prev,
-                [event.id]: (prev[event.id] || 0) + 1
-            }))
+            // Re-fetch the actual count from DB to ensure accuracy
+            // (the real-time subscription may also fire, but this ensures immediate update)
+            await fetchSingleEventCount(event.id)
         }
     }
 
