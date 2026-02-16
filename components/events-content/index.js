@@ -285,8 +285,8 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                     (displayStatus === 'closed' || isFull) && s.statusClosed
                                                 )}>
                                                     {isFull ? 'Full' : displayStatus}
-                                                    {spotsLeft !== null && !isFull && displayStatus === 'open' && (
-                                                        <span className={s.spotsLeft}> ({spotsLeft} spots left)</span>
+                                                    {maxRegistrations && !isFull && displayStatus === 'open' && (
+                                                        <span className={s.spotsLeft}> (Max: {maxRegistrations})</span>
                                                     )}
                                                     <span className="sr-only">
                                                         {isFull && ' - Event is full, no more registrations available'}

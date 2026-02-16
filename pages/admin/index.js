@@ -21,6 +21,7 @@ export default function AdminDashboard() {
     const [user, setUser] = useState(null)
     const [events, setEvents] = useState([])
     const [loading, setLoading] = useState(true)
+    const [registrationCounts, setRegistrationCounts] = useState({})
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -67,7 +68,19 @@ export default function AdminDashboard() {
             .select('*')
             .order('created_at', { ascending: false })
 
-        if (data) setEvents(data)
+        if (data) {
+            setEvents(data)
+            // Fetch registration counts for all events
+            const counts = {}
+            await Promise.all(data.map(async (event) => {
+                const { count, error } = await supabaseAdmin
+                    .from('registrations')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('event_id', event.id)
+                counts[event.id] = (!error && count !== null) ? count : 0
+            }))
+            setRegistrationCounts(counts)
+        }
         setLoading(false)
     }
 
@@ -218,25 +231,25 @@ export default function AdminDashboard() {
 
         // --- Auto Classification Logic ---
         const now = new Date();
-        
+
         // Parse start_time and end_time to create full datetime objects
         let eventStart = new Date(formData.date);
         let eventEnd = new Date(formData.date);
-        
+
         if (formData.start_time) {
             const [startHours, startMins] = formData.start_time.split(':');
             eventStart.setHours(parseInt(startHours), parseInt(startMins), 0, 0);
         } else {
             eventStart.setHours(0, 0, 0, 0);
         }
-        
+
         if (formData.end_time) {
             const [endHours, endMins] = formData.end_time.split(':');
             eventEnd.setHours(parseInt(endHours), parseInt(endMins), 0, 0);
         } else {
             eventEnd.setHours(23, 59, 59, 999);
         }
-        
+
         // Calculate Category based on start and end times
         let calculatedCategory = 'upcoming';
         if (now < eventStart) {
@@ -259,7 +272,7 @@ export default function AdminDashboard() {
                 calculatedRegStatus = 'open';
             }
         }
-        
+
         // Sanitize all text inputs before saving
         const payload = {
             title: sanitizeInput(formData.title),
@@ -342,6 +355,9 @@ export default function AdminDashboard() {
                             <p className={s.meta} style={{ textTransform: 'capitalize' }}>
                                 {event.category} • {event.registration_status}
                             </p>
+                            <p className={s.meta}>
+                                Registrations: {registrationCounts[event.id] ?? '...'}{event.max_registrations ? ` / ${event.max_registrations}` : ''}
+                            </p>
                         </div>
                         <div className={s.actions}>
                             <button onClick={() => viewRegistrations(event.id)}>Registrations</button>
@@ -392,7 +408,7 @@ export default function AdminDashboard() {
                                         value={formData.start_time}
                                         onChange={e => setFormData({ ...formData, start_time: e.target.value })}
                                         className={s.timeInput}
-                                        style={{ colorScheme: 'dark' }} 
+                                        style={{ colorScheme: 'dark' }}
                                     />
                                 </div>
                                 <div className={s.inputGroup} style={{ flex: 1 }}>
@@ -402,7 +418,7 @@ export default function AdminDashboard() {
                                         value={formData.end_time}
                                         onChange={e => setFormData({ ...formData, end_time: e.target.value })}
                                         className={s.timeInput}
-                                        style={{ colorScheme: 'dark' }} 
+                                        style={{ colorScheme: 'dark' }}
                                     />
                                 </div>
                             </div>
@@ -475,12 +491,12 @@ export default function AdminDashboard() {
                                     value={formData.max_registrations}
                                     onChange={e => setFormData({ ...formData, max_registrations: e.target.value })}
                                     placeholder="Leave empty for unlimited"
-                                    style={{ 
-                                        padding: '0.8rem', 
-                                        background: '#333', 
-                                        color: 'white', 
-                                        border: '1px solid #444', 
-                                        borderRadius: '4px' 
+                                    style={{
+                                        padding: '0.8rem',
+                                        background: '#333',
+                                        color: 'white',
+                                        border: '1px solid #444',
+                                        borderRadius: '4px'
                                     }}
                                 />
                             </div>
@@ -539,7 +555,7 @@ export default function AdminDashboard() {
                                         const match = fullName.match(/^(.+?)\s*-\s*\[?([A-Z0-9.]+)\]?$/)
                                         const name = match ? match[1].trim() : fullName
                                         const rollNumber = match ? match[2].trim() : '-'
-                                        
+
                                         return {
                                             Email: r.user_email,
                                             Name: name,
@@ -578,7 +594,7 @@ export default function AdminDashboard() {
                                             const match = fullName.match(/^(.+?)\s*-\s*\[?([A-Z0-9.]+)\]?$/)
                                             const name = match ? match[1].trim() : fullName
                                             const rollNumber = match ? match[2].trim() : '-'
-                                            
+
                                             return (
                                                 <tr key={reg.id} style={{ borderBottom: '1px solid #333', background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
                                                     <td style={{ padding: '0.8rem 1rem' }}>{reg.user_email}</td>

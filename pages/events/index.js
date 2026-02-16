@@ -1,11 +1,17 @@
 import { Layout } from 'layouts/default'
 import { useStore } from 'lib/store'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import s from './events.module.scss'
 import { useRouter } from 'next/router'
 import { EventsContent } from 'components/events-content'
 import { gsap } from 'gsap'
 import { supabase } from 'lib/supabase'
+
+// Sanitize user input to prevent injection attacks (module scope to avoid recreation)
+const sanitize = (str) => {
+    if (!str) return str
+    return String(str).replace(/[<>'"]/g, '').trim().slice(0, 255)
+}
 
 export default function Events() {
     const { setTransition } = useStore()
@@ -42,26 +48,26 @@ export default function Events() {
         }
     }, [])
 
-    // Fetch registration counts for all events from the database
+    // Fetch registration counts for all events using efficient head-count queries
     const fetchAllRegistrationCounts = useCallback(async (eventIds) => {
         if (!eventIds || !eventIds.length) return
 
-        // Fetch all registrations that match any of our event IDs
-        const { data, error } = await supabase
-            .from('registrations')
-            .select('event_id')
-            .in('event_id', eventIds)
+        // Use parallel head-count queries — only returns the count, not the rows
+        const counts = {}
+        eventIds.forEach(id => { counts[id] = 0 })
 
-        if (data && !error) {
-            // Build counts object — initialise every event to 0 first
-            // so events with zero registrations also get a count entry
-            const counts = {}
-            eventIds.forEach(id => { counts[id] = 0 })
-            data.forEach(reg => {
-                counts[reg.event_id] = (counts[reg.event_id] || 0) + 1
-            })
-            setEventRegistrationCounts(counts)
-        }
+        await Promise.all(eventIds.map(async (id) => {
+            const { count, error } = await supabase
+                .from('registrations')
+                .select('*', { count: 'exact', head: true })
+                .eq('event_id', id)
+
+            if (!error && count !== null) {
+                counts[id] = count
+            }
+        }))
+
+        setEventRegistrationCounts(counts)
     }, [])
 
     useEffect(() => {
@@ -77,8 +83,6 @@ export default function Events() {
 
         // Listen for Auth Changes (Login, Logout, Initial Session)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log("Supabase Auth Event:", event);
-            console.log("Session:", session);
 
             if (session) {
                 setUser(session.user)
@@ -101,7 +105,7 @@ export default function Events() {
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'registrations' },
                 (payload) => {
-                    console.log('Registration change detected:', payload.eventType)
+
                     // When any registration is inserted or deleted, re-fetch the count
                     // for the affected event
                     const eventId = payload.new?.event_id || payload.old?.event_id
@@ -184,12 +188,15 @@ export default function Events() {
         return null
     }
 
-    // Compute events with dynamic categories
-    const eventsWithCategories = events.map(event => ({
-        ...event,
-        category: getEventCategory(event),
-        currentRegistrations: eventRegistrationCounts[event.id] ?? 0
-    }))
+    // Compute events with dynamic categories (memoized to avoid unnecessary re-renders)
+    const eventsWithCategories = useMemo(() =>
+        events.map(event => ({
+            ...event,
+            category: getEventCategory(event),
+            currentRegistrations: eventRegistrationCounts[event.id] ?? 0
+        })),
+        [events, eventRegistrationCounts]
+    )
 
     async function fetchEvents() {
         const { data } = await supabase
@@ -218,7 +225,7 @@ export default function Events() {
 
     const handleLogin = async () => {
         const redirectUrl = window.location.origin + '/events'
-        console.log("Logging in... Redirecting to:", redirectUrl);
+
 
         await supabase.auth.signInWithOAuth({
             provider: 'azure',
@@ -234,11 +241,13 @@ export default function Events() {
 
     const handleRegister = async (event) => {
         if (!user) {
-            // Login with Azure
+            // Login with Azure — redirect back to /events after auth
             await supabase.auth.signInWithOAuth({
                 provider: 'azure',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: window.location.origin + '/events',
+                    scopes: 'openid profile email user.read',
+                    queryParams: { prompt: 'select_account' }
                 }
             })
             return
@@ -280,12 +289,6 @@ export default function Events() {
             }
         }
 
-        // Sanitize user input to prevent injection attacks
-        const sanitize = (str) => {
-            if (!str) return str
-            return String(str).replace(/[<>'"]/g, '').trim().slice(0, 255)
-        }
-
         // Register
         const { error } = await supabase
             .from('registrations')
@@ -297,7 +300,16 @@ export default function Events() {
             }])
 
         if (error) {
-            alert('Registration failed: ' + error.message)
+            // Handle unique constraint violation (duplicate registration)
+            if (error.code === '23505') {
+                alert('You are already registered for this event!')
+                // Sync local state
+                if (!registrations.includes(event.id)) {
+                    setRegistrations([...registrations, event.id])
+                }
+            } else {
+                alert('Registration failed: ' + error.message)
+            }
         } else {
             alert('Successfully registered!')
             setRegistrations([...registrations, event.id])
