@@ -10,7 +10,7 @@ const Moon = dynamic(() => import('icons/moon.svg'), { ssr: false })
 const Arrow = dynamic(() => import('icons/arrow-buttons.svg'), { ssr: false })
 const Logout = dynamic(() => import('icons/logout.svg'), { ssr: false })
 
-export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActiveTab, events = [], user, registrations = [], onRegister, onLogin, onLogout }) => {
+export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActiveTab, events = [], user, registrations = [], onRegister, onLogin, onLogout, notificationModal, closeNotificationModal }) => {
 
     const lenis = useStore(({ lenis }) => lenis)
 
@@ -57,9 +57,17 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
     const confirmLogout = () => {
         setShowLogoutModal(false)
         onLogout()
-        setNotification('Logged out successfully')
-        setTimeout(() => setNotification(null), 2000)
     }
+
+    // Auto-dismiss notification modal after 3 seconds
+    useEffect(() => {
+        if (notificationModal?.show) {
+            const timer = setTimeout(() => {
+                closeNotificationModal()
+            }, 3000)
+            return () => clearTimeout(timer)
+        }
+    }, [notificationModal?.show, closeNotificationModal])
 
     const filteredEvents = events
         .filter(e => e.category === activeTab)
@@ -456,6 +464,31 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
             {notification && (
                 <div className={s.notification} role="status" aria-live="polite">
                     <Logout aria-hidden="true" /> {notification}
+                </div>
+            )}
+
+            {/* Glassmorphism Notification Modal */}
+            {notificationModal?.show && (
+                <div
+                    className={s.notificationModal}
+                    onClick={closeNotificationModal}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="notif-modal-title"
+                >
+                    <div
+                        className={s.notificationModalContent}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 id="notif-modal-title">{notificationModal.title}</h3>
+                        <p>{notificationModal.message}</p>
+                        <button
+                            className={s.notifBtn}
+                            onClick={closeNotificationModal}
+                        >
+                            OK
+                        </button>
+                    </div>
                 </div>
             )}
         </div >

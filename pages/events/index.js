@@ -24,6 +24,12 @@ export default function Events() {
     const [user, setUser] = useState(null)
     const [registrations, setRegistrations] = useState([])
     const [eventRegistrationCounts, setEventRegistrationCounts] = useState({}) // Track registration counts per event
+    const [notificationModal, setNotificationModal] = useState({ show: false, type: 'success', title: '', message: '' })
+
+    // Helper to show a notification modal
+    const showNotif = (type, title, message) => {
+        setNotificationModal({ show: true, type, title, message })
+    }
 
     // Refs for layers
     const darkLayerRef = useRef(null)
@@ -254,14 +260,14 @@ export default function Events() {
         }
 
         if (!user.email.endsWith('@bl.students.amrita.edu') && user.email !== 'ieeecisaseb@gmail.com') {
-            alert('Registration Restricted: You must use your @bl.students.amrita.edu email address.')
+            showNotif('error', 'Restricted', 'Please use your @bl.students.amrita.edu email.')
             await supabase.auth.signOut()
             setUser(null)
             return
         }
 
         if (registrations.includes(event.id)) {
-            alert('You are already registered!')
+            showNotif('warning', 'Already Registered', 'You are already registered for this event.')
             return
         }
 
@@ -284,7 +290,7 @@ export default function Events() {
             }
 
             if (latestCount >= event.max_registrations) {
-                alert('Sorry, this event has reached its maximum registration limit.')
+                showNotif('error', 'Event Full', 'This event has reached its registration limit.')
                 return
             }
         }
@@ -302,16 +308,16 @@ export default function Events() {
         if (error) {
             // Handle unique constraint violation (duplicate registration)
             if (error.code === '23505') {
-                alert('You are already registered for this event!')
+                showNotif('warning', 'Already Registered', 'You are already registered for this event.')
                 // Sync local state
                 if (!registrations.includes(event.id)) {
                     setRegistrations([...registrations, event.id])
                 }
             } else {
-                alert('Registration failed: ' + error.message)
+                showNotif('error', 'Failed', error.message)
             }
         } else {
-            alert('Successfully registered!')
+            showNotif('success', 'Success!', 'You have been successfully registered for this event.')
             setRegistrations([...registrations, event.id])
             // Re-fetch the actual count from DB to ensure accuracy
             // (the real-time subscription may also fire, but this ensures immediate update)
@@ -323,7 +329,7 @@ export default function Events() {
         await supabase.auth.signOut()
         setUser(null)
         setRegistrations([])
-        alert('Logged out successfully.')
+        showNotif('success', 'Logged Out', 'You have been logged out successfully.')
     }
 
     const goBack = () => {
@@ -417,6 +423,8 @@ export default function Events() {
                         onRegister={handleRegister}
                         onLogin={handleLogin}
                         onLogout={handleLogout}
+                        notificationModal={notificationModal}
+                        closeNotificationModal={() => setNotificationModal(prev => ({ ...prev, show: false }))}
                     />
                 </div>
 
@@ -443,6 +451,8 @@ export default function Events() {
                         onRegister={handleRegister}
                         onLogin={handleLogin}
                         onLogout={handleLogout}
+                        notificationModal={notificationModal}
+                        closeNotificationModal={() => setNotificationModal(prev => ({ ...prev, show: false }))}
                     />
                 </div>
             </div>
