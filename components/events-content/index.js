@@ -10,7 +10,7 @@ const Moon = dynamic(() => import('icons/moon.svg'), { ssr: false })
 const Arrow = dynamic(() => import('icons/arrow-buttons.svg'), { ssr: false })
 const Logout = dynamic(() => import('icons/logout.svg'), { ssr: false })
 
-export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActiveTab, events = [], user, registrations = [], onRegister, onLogin, onLogout, notificationModal, closeNotificationModal }) => {
+export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActiveTab, events = [], user, registrations = [], onRegister, onLogin, onLogout, isRegistering, notificationModal, closeNotificationModal }) => {
 
     const lenis = useStore(({ lenis }) => lenis)
 
@@ -24,6 +24,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [showLoginModal, setShowLoginModal] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
+    const [pendingRegEvent, setPendingRegEvent] = useState(null) // For confirmation modal
     // Track events whose registration has just opened (for real-time status updates)
     const [openedRegistrations, setOpenedRegistrations] = useState({})
     // Force re-render counter when a countdown completes
@@ -340,17 +341,18 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                                     className={cn(s.btn, s.btnLarge, isRegistered && s.registered)}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation()
-                                                                        if (!isRegistered) {
+                                                                        if (!isRegistered && !isRegistering) {
                                                                             if (!user) {
                                                                                 setShowLoginModal(true)
                                                                             } else {
-                                                                                onRegister(event)
+                                                                                // Show confirmation modal instead of registering directly
+                                                                                setPendingRegEvent(event)
                                                                             }
                                                                         }
                                                                     }}
-                                                                    disabled={isRegistered}
+                                                                    disabled={isRegistered || isRegistering}
                                                                 >
-                                                                    {isRegistered ? 'Registered ✓' : 'Register'}
+                                                                    {isRegistered ? 'Registered ✓' : isRegistering ? 'Registering...' : 'Register'}
                                                                 </button>
                                                             )}
                                                         </div>
@@ -488,6 +490,46 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                         >
                             OK
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Registration Confirmation Modal */}
+            {pendingRegEvent && (
+                <div
+                    className={s.confirmModal}
+                    onClick={() => setPendingRegEvent(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="confirm-modal-title"
+                >
+                    <div
+                        className={s.confirmModalContent}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 id="confirm-modal-title">Confirm Registration</h3>
+                        <p>Are you sure you want to register for <strong>{pendingRegEvent.title}</strong>?</p>
+                        <p className={s.eventDetailHint}>Click on the event banner to view full details</p>
+
+                        <div className={s.modalButtonGroup}>
+                            <button
+                                onClick={() => setPendingRegEvent(null)}
+                                className={s.modalBtnCancel}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const evt = pendingRegEvent
+                                    setPendingRegEvent(null)
+                                    onRegister(evt)
+                                }}
+                                className={s.modalBtnConfirm}
+                                disabled={isRegistering}
+                            >
+                                {isRegistering ? 'Registering...' : 'Yes, Register'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

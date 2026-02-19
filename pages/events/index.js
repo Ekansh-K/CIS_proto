@@ -25,6 +25,7 @@ export default function Events() {
     const [registrations, setRegistrations] = useState([])
     const [eventRegistrationCounts, setEventRegistrationCounts] = useState({}) // Track registration counts per event
     const [notificationModal, setNotificationModal] = useState({ show: false, type: 'success', title: '', message: '' })
+    const [isRegistering, setIsRegistering] = useState(false)
 
     // Helper to show a notification modal
     const showNotif = (type, title, message) => {
@@ -118,6 +119,11 @@ export default function Events() {
                     if (eventId) {
                         fetchSingleEventCount(eventId)
                     }
+
+                    // Also re-fetch the current user's registrations to keep in sync
+                    if (user?.id) {
+                        fetchRegistrations(user.id)
+                    }
                 }
             )
             .subscribe()
@@ -125,7 +131,27 @@ export default function Events() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [fetchSingleEventCount])
+    }, [fetchSingleEventCount, user])
+
+    // Real-time subscription for events table changes
+    // This ensures admin changes (registration_status, max_registrations) propagate live
+    useEffect(() => {
+        const channel = supabase
+            .channel('events-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'events' },
+                () => {
+                    // Re-fetch all events when any event is updated
+                    fetchEvents()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [])
 
     // Helper function to calculate event category based on date and time
     function getEventCategory(event) {
@@ -246,82 +272,130 @@ export default function Events() {
     }
 
     const handleRegister = async (event) => {
-        if (!user) {
-            // Login with Azure — redirect back to /events after auth
-            await supabase.auth.signInWithOAuth({
-                provider: 'azure',
-                options: {
-                    redirectTo: window.location.origin + '/events',
-                    scopes: 'openid profile email user.read',
-                    queryParams: { prompt: 'select_account' }
-                }
-            })
-            return
-        }
+        // Prevent double-click / rapid submissions
+        if (isRegistering) return
+        setIsRegistering(true)
 
-        if (!user.email.endsWith('@bl.students.amrita.edu') && user.email !== 'ieeecisaseb@gmail.com') {
-            showNotif('error', 'Restricted', 'Please use your @bl.students.amrita.edu email.')
-            await supabase.auth.signOut()
-            setUser(null)
-            return
-        }
-
-        if (registrations.includes(event.id)) {
-            showNotif('warning', 'Already Registered', 'You are already registered for this event.')
-            return
-        }
-
-        // Re-fetch the latest count from DB before checking the limit
-        // This prevents race conditions where the local count is stale
-        let latestCount = eventRegistrationCounts[event.id] || 0
-        if (event.max_registrations) {
-            const { count, error: countError } = await supabase
-                .from('registrations')
-                .select('*', { count: 'exact', head: true })
-                .eq('event_id', event.id)
-
-            if (!countError && count !== null) {
-                latestCount = count
-                // Also update local state with the fresh count
-                setEventRegistrationCounts(prev => ({
-                    ...prev,
-                    [event.id]: count
-                }))
-            }
-
-            if (latestCount >= event.max_registrations) {
-                showNotif('error', 'Event Full', 'This event has reached its registration limit.')
+        try {
+            if (!user) {
+                // Login with Azure — redirect back to /events after auth
+                await supabase.auth.signInWithOAuth({
+                    provider: 'azure',
+                    options: {
+                        redirectTo: window.location.origin + '/events',
+                        scopes: 'openid profile email user.read',
+                        queryParams: { prompt: 'select_account' }
+                    }
+                })
                 return
             }
-        }
 
-        // Register
-        const { error } = await supabase
-            .from('registrations')
-            .insert([{
-                event_id: event.id,
-                user_id: user.id,
-                user_email: sanitize(user.email),
-                full_name: sanitize(user.user_metadata?.full_name || user.email)
-            }])
+            if (!user.email.endsWith('@bl.students.amrita.edu') && user.email !== 'ieeecisaseb@gmail.com') {
+                showNotif('error', 'Restricted', 'Please use your @bl.students.amrita.edu email.')
+                await supabase.auth.signOut()
+                setUser(null)
+                return
+            }
 
-        if (error) {
-            // Handle unique constraint violation (duplicate registration)
-            if (error.code === '23505') {
+            if (registrations.includes(event.id)) {
                 showNotif('warning', 'Already Registered', 'You are already registered for this event.')
-                // Sync local state
-                if (!registrations.includes(event.id)) {
-                    setRegistrations([...registrations, event.id])
+                return
+            }
+
+            // Re-fetch the event's current registration_status from DB
+            // This catches admin force-close even if the user hasn't reloaded
+            const { data: freshEvent, error: eventError } = await supabase
+                .from('events')
+                .select('registration_status, max_registrations')
+                .eq('id', event.id)
+                .single()
+
+            if (!eventError && freshEvent) {
+                if (freshEvent.registration_status === 'closed') {
+                    showNotif('error', 'Registration Closed', 'Registration for this event has been closed by the organizer.')
+                    // Update local event data
+                    fetchEvents()
+                    return
+                }
+            }
+
+            // Re-fetch the latest count from DB before checking the limit
+            const maxReg = freshEvent?.max_registrations || event.max_registrations
+            let latestCount = eventRegistrationCounts[event.id] || 0
+            if (maxReg) {
+                const { count, error: countError } = await supabase
+                    .from('registrations')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('event_id', event.id)
+
+                if (!countError && count !== null) {
+                    latestCount = count
+                    setEventRegistrationCounts(prev => ({
+                        ...prev,
+                        [event.id]: count
+                    }))
+                }
+
+                if (latestCount >= maxReg) {
+                    showNotif('error', 'Event Full', 'This event has reached its registration limit.')
+                    // Refresh count & events so UI immediately shows Full status
+                    await fetchSingleEventCount(event.id)
+                    fetchEvents()
+                    return
+                }
+            }
+
+            // Register
+            const { data: insertedData, error } = await supabase
+                .from('registrations')
+                .insert([{
+                    event_id: event.id,
+                    user_id: user.id,
+                    user_email: sanitize(user.email),
+                    full_name: sanitize(user.user_metadata?.full_name || user.email)
+                }])
+                .select('id')
+
+            if (error) {
+                // Handle unique constraint violation (duplicate registration)
+                if (error.code === '23505') {
+                    showNotif('warning', 'Already Registered', 'You are already registered for this event.')
+                    if (!registrations.includes(event.id)) {
+                        setRegistrations([...registrations, event.id])
+                    }
+                } else {
+                    showNotif('error', 'Failed', error.message)
                 }
             } else {
-                showNotif('error', 'Failed', error.message)
+                // POST-INSERT VERIFICATION: Check if we went over the limit (race condition guard)
+                if (maxReg) {
+                    const { count: postCount, error: postErr } = await supabase
+                        .from('registrations')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('event_id', event.id)
+
+                    if (!postErr && postCount !== null && postCount > maxReg) {
+                        // We exceeded the limit — rollback our registration
+                        await supabase
+                            .from('registrations')
+                            .delete()
+                            .eq('event_id', event.id)
+                            .eq('user_id', user.id)
+
+                        // Refresh count & events so UI immediately shows Full status
+                        await fetchSingleEventCount(event.id)
+                        fetchEvents()
+                        showNotif('error', 'Event Full', 'Sorry, this event just reached its registration limit. Your registration could not be completed.')
+                        return
+                    }
+                }
+
+                showNotif('success', 'Success!', 'You have been successfully registered for this event.')
+                setRegistrations([...registrations, event.id])
+                await fetchSingleEventCount(event.id)
             }
-        } else {
-            showNotif('success', 'Success!', 'You have been successfully registered for this event.')
-            setRegistrations([...registrations, event.id])
-            // Re-fetch the actual count from DB to ensure accuracy
-            // (the real-time subscription may also fire, but this ensures immediate update)
-            await fetchSingleEventCount(event.id)
+        } finally {
+            setIsRegistering(false)
         }
     }
 
@@ -423,6 +497,7 @@ export default function Events() {
                         onRegister={handleRegister}
                         onLogin={handleLogin}
                         onLogout={handleLogout}
+                        isRegistering={isRegistering}
                         notificationModal={notificationModal}
                         closeNotificationModal={() => setNotificationModal(prev => ({ ...prev, show: false }))}
                     />
@@ -451,6 +526,7 @@ export default function Events() {
                         onRegister={handleRegister}
                         onLogin={handleLogin}
                         onLogout={handleLogout}
+                        isRegistering={isRegistering}
                         notificationModal={notificationModal}
                         closeNotificationModal={() => setNotificationModal(prev => ({ ...prev, show: false }))}
                     />

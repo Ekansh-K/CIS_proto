@@ -155,6 +155,25 @@ export default function AdminDashboard() {
         }
     }
 
+    // Force close or reopen registration for an event
+    const toggleRegistration = async (event) => {
+        const newStatus = event.registration_status === 'closed' ? 'open' : 'closed'
+        const action = newStatus === 'closed' ? 'close' : 'reopen'
+
+        if (!confirm(`Are you sure you want to ${action} registration for "${event.title}"?`)) return
+
+        const { error } = await supabaseAdmin
+            .from('events')
+            .update({ registration_status: newStatus })
+            .eq('id', event.id)
+
+        if (!error) {
+            fetchEvents()
+        } else {
+            alert(`Error ${action}ing registration: ` + error.message)
+        }
+    }
+
     const uploadImage = async () => {
         if (!imageFile) return formData.image_url
 
@@ -361,6 +380,16 @@ export default function AdminDashboard() {
                         </div>
                         <div className={s.actions}>
                             <button onClick={() => viewRegistrations(event.id)}>Registrations</button>
+                            <button
+                                onClick={() => toggleRegistration(event)}
+                                style={{
+                                    background: event.registration_status === 'closed' ? '#27ae60' : '#e74c3c',
+                                    borderColor: event.registration_status === 'closed' ? '#27ae60' : '#e74c3c',
+                                    color: '#fff'
+                                }}
+                            >
+                                {event.registration_status === 'closed' ? 'Open Reg' : 'Close Reg'}
+                            </button>
                             <button onClick={() => openModal(event)}>Edit</button>
                             <button className={s.delete} onClick={() => deleteEvent(event.id)}>Delete</button>
                         </div>
