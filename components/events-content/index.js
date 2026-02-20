@@ -163,20 +163,20 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                 // Calculate dynamic registration status based on timing
                                 let displayStatus = event.registration_status;
 
-                                // If event is in the past, registration should be closed
-                                if (event.category === 'past') {
+                                // If event has started (current) or is past, registration is ALWAYS closed
+                                if (event.category === 'past' || event.category === 'current') {
                                     displayStatus = 'closed';
                                 }
                                 // If registration hasn't opened yet (and countdown hasn't completed), show on-hold
                                 else if (opensAt && now < opensAt && !hasOpened && event.registration_status !== 'closed') {
                                     displayStatus = 'on-hold';
                                 }
-                                // If registration has opened (via countdown or time), show as open (unless DB says closed)
-                                else if ((event.category === 'upcoming' || event.category === 'current') && event.registration_status !== 'closed') {
+                                // Upcoming events: show open if registration time has passed and DB says open
+                                else if (event.category === 'upcoming' && event.registration_status !== 'closed') {
                                     displayStatus = isRegistrationOpen ? 'open' : event.registration_status;
                                 }
-                                // If event is upcoming or current, respect the database status
-                                else if (event.category === 'upcoming' || event.category === 'current') {
+                                // Respect the database status for everything else
+                                else {
                                     displayStatus = event.registration_status;
                                 }
 
@@ -323,7 +323,7 @@ export const EventsContent = ({ theme, toggleTheme, goBack, activeTab, setActive
                                                     />
                                                 </div>
                                             ) : (
-                                                activeTab !== 'past' && event.registration_status !== 'closed' && !isFull && (
+                                                activeTab !== 'past' && displayStatus === 'open' && !isFull && (
                                                     <div className={s.actionsWrapper}>
                                                         <div className={s.actions}>
                                                             {event.registration_link ? (

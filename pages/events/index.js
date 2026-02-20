@@ -26,6 +26,7 @@ export default function Events() {
     const [eventRegistrationCounts, setEventRegistrationCounts] = useState({}) // Track registration counts per event
     const [notificationModal, setNotificationModal] = useState({ show: false, type: 'success', title: '', message: '' })
     const [isRegistering, setIsRegistering] = useState(false)
+    const [tick, setTick] = useState(0) // Periodic trigger to re-evaluate event categories on stale pages
 
     // Helper to show a notification modal
     const showNotif = (type, title, message) => {
@@ -111,13 +112,33 @@ export default function Events() {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'registrations' },
-                (payload) => {
+                async (payload) => {
 
                     // When any registration is inserted or deleted, re-fetch the count
                     // for the affected event
                     const eventId = payload.new?.event_id || payload.old?.event_id
                     if (eventId) {
                         fetchSingleEventCount(eventId)
+
+                        // Also re-fetch the event's registration_status from DB.
+                        // This is critical: the DB trigger auto-sets registration_status='closed'
+                        // when max_registrations is reached, but that UPDATE on the events table
+                        // may not reliably fire the events-changes realtime subscription
+                        // (depends on Supabase publication/RLS settings).
+                        // By fetching it here we guarantee the status label updates on all browsers.
+                        const { data: updatedEvent } = await supabase
+                            .from('events')
+                            .select('id, registration_status, max_registrations')
+                            .eq('id', eventId)
+                            .single()
+
+                        if (updatedEvent) {
+                            setEvents(prev => prev.map(e =>
+                                e.id === eventId
+                                    ? { ...e, registration_status: updatedEvent.registration_status, max_registrations: updatedEvent.max_registrations }
+                                    : e
+                            ))
+                        }
                     }
 
                     // Also re-fetch the current user's registrations to keep in sync
@@ -152,6 +173,26 @@ export default function Events() {
             supabase.removeChannel(channel)
         }
     }, [])
+
+    // Periodic timer: re-evaluate event categories every 30s and re-fetch counts every 60s
+    // This catches stale pages where the user hasn't reloaded but an event has transitioned
+    // from upcoming → current → past based on the current time.
+    useEffect(() => {
+        const categoryInterval = setInterval(() => {
+            setTick(t => t + 1)
+        }, 30000) // Re-evaluate categories every 30 seconds
+
+        const countInterval = setInterval(() => {
+            if (eventIdsRef.current.length > 0) {
+                fetchAllRegistrationCounts(eventIdsRef.current)
+            }
+        }, 10000) // Re-fetch counts every 10 seconds as a safety net
+
+        return () => {
+            clearInterval(categoryInterval)
+            clearInterval(countInterval)
+        }
+    }, [fetchAllRegistrationCounts])
 
     // Helper function to calculate event category based on date and time
     function getEventCategory(event) {
@@ -221,13 +262,14 @@ export default function Events() {
     }
 
     // Compute events with dynamic categories (memoized to avoid unnecessary re-renders)
+    // `tick` forces re-computation every 30s so stale pages detect upcoming→current transitions
     const eventsWithCategories = useMemo(() =>
         events.map(event => ({
             ...event,
             category: getEventCategory(event),
             currentRegistrations: eventRegistrationCounts[event.id] ?? 0
         })),
-        [events, eventRegistrationCounts]
+        [events, eventRegistrationCounts, tick]
     )
 
     async function fetchEvents() {
@@ -302,6 +344,14 @@ export default function Events() {
                 return
             }
 
+            // Client-side time check: block if event has already started (current/past)
+            const currentCategory = getEventCategory(event)
+            if (currentCategory === 'current' || currentCategory === 'past') {
+                showNotif('error', 'Registration Closed', 'This event has already started. Registration is no longer available.')
+                fetchEvents()
+                return
+            }
+
             // Re-fetch the event's current registration_status from DB
             // This catches admin force-close even if the user hasn't reloaded
             const { data: freshEvent, error: eventError } = await supabase
@@ -357,39 +407,27 @@ export default function Events() {
                 .select('id')
 
             if (error) {
-                // Handle unique constraint violation (duplicate registration)
+                // Handle specific error cases from the DB trigger and constraints
                 if (error.code === '23505') {
                     showNotif('warning', 'Already Registered', 'You are already registered for this event.')
                     if (!registrations.includes(event.id)) {
                         setRegistrations([...registrations, event.id])
                     }
+                } else if (error.message?.includes('EVENT_FULL')) {
+                    showNotif('error', 'Event Full', 'This event has reached its maximum registration limit.')
+                    await fetchSingleEventCount(event.id)
+                    fetchEvents()
+                } else if (error.message?.includes('REGISTRATION_CLOSED')) {
+                    showNotif('error', 'Registration Closed', 'Registration has been closed for this event.')
+                    fetchEvents()
+                } else if (error.message?.includes('EVENT_STARTED')) {
+                    showNotif('error', 'Event Started', 'This event has already started. Registration is closed.')
+                    fetchEvents()
                 } else {
                     showNotif('error', 'Failed', error.message)
                 }
             } else {
-                // POST-INSERT VERIFICATION: Check if we went over the limit (race condition guard)
-                if (maxReg) {
-                    const { count: postCount, error: postErr } = await supabase
-                        .from('registrations')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('event_id', event.id)
-
-                    if (!postErr && postCount !== null && postCount > maxReg) {
-                        // We exceeded the limit — rollback our registration
-                        await supabase
-                            .from('registrations')
-                            .delete()
-                            .eq('event_id', event.id)
-                            .eq('user_id', user.id)
-
-                        // Refresh count & events so UI immediately shows Full status
-                        await fetchSingleEventCount(event.id)
-                        fetchEvents()
-                        showNotif('error', 'Event Full', 'Sorry, this event just reached its registration limit. Your registration could not be completed.')
-                        return
-                    }
-                }
-
+                // Success — the DB trigger has already validated everything atomically
                 showNotif('success', 'Success!', 'You have been successfully registered for this event.')
                 setRegistrations([...registrations, event.id])
                 await fetchSingleEventCount(event.id)
