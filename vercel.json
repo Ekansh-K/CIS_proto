@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/whatsapp",
+      "destination": "https://chat.whatsapp.com/JagBOCaOiPW3cTHBW6ToQ9",
+      "permanent": false
+    }
+  ]
+}
