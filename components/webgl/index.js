@@ -1,4 +1,4 @@
-import { Float, useGLTF } from '@react-three/drei'
+import { Float, useGLTF, OrbitControls, TransformControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useFrame as useRaf } from '@darkroom.engineering/hamo'
 import { useScroll } from 'hooks/use-scroll'
@@ -248,6 +248,66 @@ export function Arm() {
   const { scene: arm1 } = useGLTF('/models/cis-lgo.glb')
   const { scene: arm2 } = useGLTF('/models/cis_logo_1.glb')
   const [type, setType] = useState(1)
+
+  const [target, setTarget] = useState()
+  const orbit = useRef()
+  const transform = useRef()
+
+  const [{ transformMode }, setTransformOptions] = useControls('editor', () => ({
+    transformMode: { options: ['translate', 'rotate', 'scale'] },
+    save: button(async () => {
+      if (arm1 && arm2) {
+        const data = {
+          arm1: {
+            position: arm1.position.toArray(),
+            rotation: arm1.rotation.toArray(),
+            scale: arm1.scale.toArray(),
+          },
+          arm2: {
+            position: arm2.position.toArray(),
+            rotation: arm2.rotation.toArray(),
+            scale: arm2.scale.toArray(),
+          }
+        }
+        await fetch('/api/save-changes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        alert('World changes saved!');
+      }
+    }),
+  }), [arm1, arm2])
+
+  useEffect(() => {
+    fetch('/world-changes.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.arm1 && arm1) {
+          arm1.position.fromArray(data.arm1.position)
+          arm1.rotation.fromArray(data.arm1.rotation)
+          arm1.scale.fromArray(data.arm1.scale)
+        }
+        if (data && data.arm2 && arm2) {
+          arm2.position.fromArray(data.arm2.position)
+          arm2.rotation.fromArray(data.arm2.rotation)
+          arm2.scale.fromArray(data.arm2.scale)
+        }
+      }).catch(e => console.log('No saved changes found or failed to load'))
+  }, [arm1, arm2])
+
+  useEffect(() => {
+    if (transform.current) {
+      const controls = transform.current
+      const callback = event => {
+        if (orbit.current) {
+          orbit.current.enabled = !event.value
+        }
+      }
+      controls.addEventListener('dragging-changed', callback)
+      return () => controls.removeEventListener('dragging-changed', callback)
+    }
+  })
 
   const [{ color, roughness, metalness, wireframe }, setMaterial] = useControls(
     () => ({
@@ -509,24 +569,31 @@ export function Arm() {
       <Float floatIntensity={custom ? 0 : 1} rotationIntensity={custom ? 0 : 1}>
         <group
           ref={parent}
-        // position={[viewport.width * 0.155, viewport.height * -0.6, 0]}
-        // scale={viewport.height * 0.023}
-        // rotation={[
-        //   MathUtils.degToRad(125),
-        //   MathUtils.degToRad(-57),
-        //   MathUtils.degToRad(140),
-        // ]}
         >
-          {/* <TransformControls mode="rotate"> */}
-          {type === 1 && <primitive object={arm1} scale={[1, 1, 1]} />}
-          {type === 2 && <primitive object={arm2} scale={[1, 1, 1]} />}
-          {/* </TransformControls> */}
+          {type === 1 && (
+            <primitive
+              object={arm1}
+              onClick={(e) => {
+                e.stopPropagation()
+                setTarget(arm1)
+              }}
+            />
+          )}
+          {type === 2 && (
+            <primitive
+              object={arm2}
+              onClick={(e) => {
+                e.stopPropagation()
+                setTarget(arm2)
+              }}
+            />
+          )}
         </group>
       </Float>
-      {/* {target && (
-        <TransformControls mode="translate" object={target} makeDefault />
-      )} */}
-      {/* <OrbitControls makeDefault /> */}
+      {target && (
+        <TransformControls ref={transform} mode={transformMode} object={target} makeDefault />
+      )}
+      <OrbitControls ref={orbit} makeDefault />
     </>
   )
 }
@@ -536,7 +603,6 @@ function Content() {
 
   return (
     <>
-      {/* <OrbitControls makeDefault /> */}
       <Particles
         width={viewport.width}
         height={viewport.height}

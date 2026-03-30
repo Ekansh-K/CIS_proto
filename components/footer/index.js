@@ -4,6 +4,7 @@ import { Link } from 'components/link'
 import dynamic from 'next/dynamic'
 
 const Instagram = dynamic(() => import('icons/instagram.svg'), { ssr: false })
+const Whatsapp = dynamic(() => import('icons/whatsapp.svg'), { ssr: false })
 const Gmail = dynamic(() => import('icons/gmail.svg'), { ssr: false })
 const Home = dynamic(() => import('icons/home.svg'), { ssr: false })
 import s from './footer.module.scss'
@@ -47,6 +48,12 @@ export const Footer = () => {
             href="mailto:ieeecisaseb@gmail.com"
           >
             <Gmail className={s.icon} />
+          </Link>
+          <Link
+            className={cn(s.link, 'p-xs')}
+            href="/whatsapp"
+          >
+            <Whatsapp className={s.icon} />
           </Link>
 
         </div>
