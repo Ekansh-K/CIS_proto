@@ -9,6 +9,7 @@ import { useStore } from 'lib/store'
 import dynamic from 'next/dynamic'
 import Script from 'next/script'
 import { useEffect } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import 'styles/global.scss'
 
 if (typeof window !== 'undefined') {
@@ -101,6 +102,7 @@ function MyApp({ Component, pageProps }) {
 
       <RealViewport />
       <Component {...pageProps} />
+      <SpeedInsights />
     </>
   )
 }
